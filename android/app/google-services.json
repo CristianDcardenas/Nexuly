@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878424589610",
+    "project_id": "nexuly",
+    "storage_bucket": "nexuly.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878424589610:android:f38b2dadfbb340d69cca53",
+        "android_client_info": {
+          "package_name": "com.example.nexuly_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2A6Z_z3KVFJ-tJKGO1nqed_cMCVnGcvc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
