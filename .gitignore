@@ -50,3 +50,7 @@ pubspec.lock
 /macos/Flutter/GeneratedPluginRegistrant.swift
 /windows/flutter/generated_plugin_registrant.cc
 /linux/flutter/generated_plugin_registrant.cc
+
+# Logs y archivos de rastreo
+*.log
+custom_lint.log
