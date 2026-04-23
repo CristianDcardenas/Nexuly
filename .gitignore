@@ -42,3 +42,11 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 
 # macOS
 .DS_Store
+
+# Archivos generados de Flutter
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+/macos/Flutter/GeneratedPluginRegistrant.swift
+/windows/flutter/generated_plugin_registrant.cc
+/linux/flutter/generated_plugin_registrant.cc
