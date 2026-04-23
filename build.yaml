@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # Los campos de los modelos Dart están en camelCase, pero en Firestore
+          # usamos snake_case (según el documento de BD). json_serializable
+          # se encarga de la conversión automática.
+          field_rename: snake
+          explicit_to_json: true
+          include_if_null: false
+          create_factory: true
+          create_to_json: true

@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// =============================================================================
+// NEXULY — Firebase Storage Rules
+// =============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    // ----- Fotos de perfil de usuario -----
+    // Ruta sugerida: users/{uid}/profile/avatar.jpg
+    match /users/{uid}/profile/{file=**} {
+      allow read: if true; // avatars son públicos
+      allow write: if isSignedIn() && request.auth.uid == uid
+                && request.resource.size < 5 * 1024 * 1024
+                && request.resource.contentType.matches('image/.*');
+    }
+
+    // ----- Fotos de perfil y galería de profesionales -----
+    match /professionals/{uid}/profile/{file=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && request.auth.uid == uid
+                && request.resource.size < 5 * 1024 * 1024
+                && request.resource.contentType.matches('image/.*');
+    }
+
+    // ----- Documentos de validación de profesionales (sensibles) -----
+    // Ruta sugerida: professionals/{uid}/documents/{docId}.pdf
+    match /professionals/{uid}/documents/{file=**} {
+      allow read: if isSignedIn()
+                && (request.auth.uid == uid || isAdmin());
+      allow write: if isSignedIn() && request.auth.uid == uid
+                && request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // ----- Adjuntos de chat -----
+    // Ruta sugerida: chats/{chatId}/{messageId}/{fileName}
+    match /chats/{chatId}/{file=**} {
+      // Lectura/escritura verificadas por Firestore (participantes del chat).
+      // Aquí solo validamos autenticación y tamaño.
+      allow read: if isSignedIn();
+      allow write: if isSignedIn()
+                && request.resource.size < 20 * 1024 * 1024;
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

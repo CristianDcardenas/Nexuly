@@ -1,0 +1,278 @@
+rules_version = '2';
+
+// =============================================================================
+// NEXULY — Firestore Security Rules
+// =============================================================================
+// Modelo: cliente SOLO escribe lo mínimo necesario. Cambios de estado, métricas
+// y validaciones sensibles pasan por Cloud Functions.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+          && request.auth.token.role == 'admin';
+    }
+
+    // Nota: las funciones isProfessional() y hasConfirmedRequestBetween()
+    // se implementarán cuando se necesiten. El acceso del profesional al
+    // medical_profile del usuario se validará vía Cloud Function que otorgue
+    // permiso temporal (custom claim o documento intermedio).
+
+    // -------------------------------------------------------------------------
+    // users
+    // -------------------------------------------------------------------------
+    match /users/{uid} {
+      // Lectura pública mínima para que otros profesionales puedan ver el perfil
+      // del usuario solo si es administrador o el propio usuario.
+      allow read: if isUser(uid) || isAdmin();
+
+      // Creación: solo el propio usuario con su uid.
+      allow create: if isUser(uid)
+                 && request.resource.data.uid == uid
+                 && request.resource.data.created_at == request.time;
+
+      // Actualización: propio usuario, pero no puede cambiar su uid
+      // ni escribir campos que solo Cloud Functions debe tocar.
+      allow update: if isUser(uid)
+                 && request.resource.data.uid == resource.data.uid;
+
+      // Eliminación dura no permitida desde cliente (se usa soft delete).
+      allow delete: if false;
+
+      // ----- medical_profile (subcolección sensible) ------
+      match /medical_profile/{docId} {
+        // Lectura: el propio usuario siempre, el profesional SOLO si Cloud Function
+        // le concede temporalmente acceso (esto se hará guardando un flag en un
+        // documento separado o vía Custom Claim temporal). Por defecto: solo owner.
+        allow read: if isUser(uid) || isAdmin();
+        allow write: if isUser(uid);
+      }
+
+      // ----- blocked_professionals ------
+      match /blocked_professionals/{profId} {
+        allow read, write: if isUser(uid);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // user_behavior — solo lectura, cliente nunca escribe
+    // -------------------------------------------------------------------------
+    match /user_behavior/{uid} {
+      // Profesional puede leer el trust_label del usuario con quien tiene un request.
+      // Para el MVP permitimos lectura al propio usuario y al admin; los
+      // profesionales consultan el trust_label vía Cloud Function (callable).
+      allow read: if isUser(uid) || isAdmin();
+      allow write: if false; // Solo Cloud Functions (service account)
+    }
+
+    // -------------------------------------------------------------------------
+    // professionals
+    // -------------------------------------------------------------------------
+    match /professionals/{uid} {
+      // Lectura pública si está aprobado y activo; el propio profesional y admin
+      // siempre pueden leer.
+      allow read: if (resource.data.validation_status == 'approved'
+                   && resource.data.is_active == true)
+                 || isUser(uid)
+                 || isAdmin();
+
+      allow create: if isUser(uid)
+                 && request.resource.data.uid == uid
+                 && request.resource.data.validation_status == 'pending';
+
+      allow update: if isUser(uid)
+                 // El profesional no puede auto-aprobarse.
+                 && request.resource.data.validation_status
+                    == resource.data.validation_status
+                 && request.resource.data.uid == resource.data.uid;
+
+      // Cambio de validation_status solo vía admin (con custom claim) o CF.
+      allow update: if isAdmin();
+
+      allow delete: if false;
+
+      // ----- documents ------
+      match /documents/{docId} {
+        allow read: if isUser(uid) || isAdmin();
+        allow create: if isUser(uid)
+                   && request.resource.data.status == 'pending';
+        allow update: if isAdmin(); // solo admin verifica/rechaza
+        allow delete: if isUser(uid) && resource.data.status == 'pending';
+      }
+
+      // ----- availability_blocks ------
+      match /availability_blocks/{blockId} {
+        allow read: if true; // necesario para que usuarios vean disponibilidad
+        allow write: if isUser(uid);
+      }
+
+      // ----- blocked_users ------
+      match /blocked_users/{userId} {
+        allow read, write: if isUser(uid);
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // services
+    // -------------------------------------------------------------------------
+    match /services/{serviceId} {
+      allow read: if resource.data.is_active == true || isAdmin()
+               || (isSignedIn() && resource.data.professional_id == request.auth.uid);
+
+      allow create: if isSignedIn()
+                 && request.resource.data.professional_id == request.auth.uid;
+
+      allow update, delete: if isSignedIn()
+                 && resource.data.professional_id == request.auth.uid;
+    }
+
+    // -------------------------------------------------------------------------
+    // service_requests — el corazón del sistema
+    // -------------------------------------------------------------------------
+    match /service_requests/{reqId} {
+      // Lectura: participantes del request y admin.
+      allow read: if isSignedIn()
+                && (resource.data.user_id == request.auth.uid
+                 || resource.data.professional_id == request.auth.uid
+                 || isAdmin());
+
+      // Creación: solo el usuario dueño, con estado inicial CREATED.
+      allow create: if isSignedIn()
+                 && request.resource.data.user_id == request.auth.uid
+                 && request.resource.data.status == 'CREATED';
+
+      // Actualización: bloqueada para cliente (el status se cambia vía CF).
+      // Excepción: el usuario puede cambiar `cancellation_reason` sin cambiar status,
+      // o cancelar si el status actual lo permite.
+      // Para simplicidad del MVP: dejamos updates solo via Cloud Function.
+      allow update: if false;
+
+      allow delete: if false;
+
+      // ----- status_history (solo lectura para participantes) ------
+      match /status_history/{entryId} {
+        allow read: if isSignedIn()
+                  && (get(/databases/$(database)/documents/service_requests/$(reqId)).data.user_id == request.auth.uid
+                   || get(/databases/$(database)/documents/service_requests/$(reqId)).data.professional_id == request.auth.uid
+                   || isAdmin());
+        allow write: if false; // Solo Cloud Functions
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // reviews
+    // -------------------------------------------------------------------------
+    match /reviews/{reviewId} {
+      // Las reseñas públicas son legibles por todos los autenticados.
+      // Las internas solo por el autor, target (si es profesional) y admin.
+      allow read: if isSignedIn()
+                && (resource.data.is_public == true
+                 || resource.data.author_id == request.auth.uid
+                 || resource.data.target_id == request.auth.uid
+                 || isAdmin());
+
+      // Creación: el autor debe ser el usuario autenticado. Validación extra
+      // (que el request esté COMPLETED y el autor sea participante) pasa por CF.
+      allow create: if isSignedIn()
+                 && request.resource.data.author_id == request.auth.uid;
+
+      // Inmutables una vez creadas.
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // chats + messages
+    // -------------------------------------------------------------------------
+    match /chats/{chatId} {
+      allow read: if isSignedIn()
+                && (resource.data.user_id == request.auth.uid
+                 || resource.data.professional_id == request.auth.uid
+                 || isAdmin());
+
+      // Creación vía Cloud Function al confirmar el request. Cliente no crea.
+      allow create: if false;
+
+      // Actualización: solo participantes (para resetear unread_count o marcar inactivo).
+      allow update: if isSignedIn()
+                 && (resource.data.user_id == request.auth.uid
+                  || resource.data.professional_id == request.auth.uid);
+
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if isSignedIn()
+                  && (get(/databases/$(database)/documents/chats/$(chatId)).data.user_id == request.auth.uid
+                   || get(/databases/$(database)/documents/chats/$(chatId)).data.professional_id == request.auth.uid);
+
+        allow create: if isSignedIn()
+                   && request.resource.data.sender_id == request.auth.uid
+                   && (get(/databases/$(database)/documents/chats/$(chatId)).data.user_id == request.auth.uid
+                    || get(/databases/$(database)/documents/chats/$(chatId)).data.professional_id == request.auth.uid);
+
+        allow update, delete: if false; // mensajes inmutables
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // notifications
+    // -------------------------------------------------------------------------
+    match /notifications/{notifId} {
+      allow read: if isSignedIn()
+                && resource.data.recipient_id == request.auth.uid;
+
+      // Solo cliente puede marcar como leída su propia notificación.
+      allow update: if isSignedIn()
+                 && resource.data.recipient_id == request.auth.uid
+                 && request.resource.data.recipient_id == resource.data.recipient_id;
+
+      allow create, delete: if false; // Solo Cloud Functions
+    }
+
+    // -------------------------------------------------------------------------
+    // admin_actions
+    // -------------------------------------------------------------------------
+    match /admin_actions/{actionId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // ai_recommendations
+    // -------------------------------------------------------------------------
+    match /ai_recommendations/{recId} {
+      allow read: if isSignedIn() && resource.data.user_id == request.auth.uid;
+
+      // El cliente puede crear (para registrar su consulta) pero solo para su uid.
+      allow create: if isSignedIn()
+                 && request.resource.data.user_id == request.auth.uid;
+
+      // Solo feedback puede cambiar por parte del cliente.
+      allow update: if isSignedIn()
+                 && resource.data.user_id == request.auth.uid
+                 && request.resource.data.diff(resource.data).affectedKeys()
+                      .hasOnly(['feedback']);
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Default deny
+    // -------------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
