@@ -7,16 +7,16 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
-import '../../features/auth/presentation/register_screen.dart';
-import '../../features/auth/presentation/role_selection_screen.dart';
-import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
+import '../../features/shell/patient_placeholders.dart';
+import '../../features/shell/patient_shell.dart';
+import '../../features/shell/professional_placeholders.dart';
+import '../../features/shell/professional_shell.dart';
 import '../constants/role.dart';
 
 part 'app_router.g.dart';
 
-/// Convierte un Stream en un Listenable que go_router puede escuchar
-/// para refrescar las redirecciones cuando cambia el estado de auth.
+/// Convierte el stream de autenticación en un Listenable para go_router.
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
@@ -24,7 +24,6 @@ class _GoRouterRefreshStream extends ChangeNotifier {
           (_) => notifyListeners(),
         );
   }
-
   late final StreamSubscription<dynamic> _subscription;
 
   @override
@@ -39,131 +38,124 @@ GoRouter appRouter(Ref ref) {
   final authRepo = ref.watch(authRepositoryProvider);
 
   return GoRouter(
-    initialLocation: '/welcome',
+    initialLocation: '/login',
     debugLogDiagnostics: true,
     refreshListenable: _GoRouterRefreshStream(authRepo.authStateChanges),
-    redirect: (context, state) {
+
+    /// Redirects:
+    /// - Sin sesión + ruta protegida → /login
+    /// - Con sesión + /login o /forgot-password → redirigir según rol
+    /// - Si hay sesión pero el documento de Firestore aún no existe, mandamos
+    ///   al usuario a /login (esto no debería pasar tras signup, pero es un fallback).
+    redirect: (context, state) async {
+      final loc = state.matchedLocation;
       final isLoggedIn = authRepo.currentUser != null;
-      final location = state.matchedLocation;
+      final isAuthRoute = loc == '/login' || loc == '/forgot-password';
 
-      final isAuthRoute = location == '/welcome' ||
-          location == '/role' ||
-          location == '/login' ||
-          location.startsWith('/register') ||
-          location == '/forgot-password';
-
-      // Si no hay sesión y está intentando acceder a una ruta protegida,
-      // enviarlo a welcome.
-      if (!isLoggedIn && !isAuthRoute) {
-        return '/welcome';
+      // Sin sesión → forzar login.
+      if (!isLoggedIn) {
+        return isAuthRoute ? null : '/login';
       }
 
-      // Si hay sesión y está en una ruta de auth, enviarlo a home.
-      if (isLoggedIn && isAuthRoute) {
+      // Con sesión en una ruta de auth → mandar al home según rol.
+      if (isAuthRoute) {
+        final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
+        if (role == UserRole.professional) return '/pro/home';
         return '/home';
       }
 
-      return null; // no redirect
+      // Con sesión en una ruta de paciente que debería ser profesional o viceversa.
+      // Esto evita que un profesional vea el home de paciente por accidente.
+      final isPatientRoute = loc.startsWith('/home') ||
+          loc.startsWith('/search') ||
+          loc.startsWith('/bookings') ||
+          loc.startsWith('/history') ||
+          loc.startsWith('/profile');
+      final isProRoute = loc.startsWith('/pro');
+
+      if (isPatientRoute || isProRoute) {
+        final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
+        if (role == UserRole.professional && isPatientRoute) return '/pro/home';
+        if (role == UserRole.patient && isProRoute) return '/home';
+      }
+
+      return null;
     },
+
     routes: [
-      GoRoute(
-        path: '/welcome',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
-      GoRoute(
-        path: '/role',
-        builder: (context, state) => const RoleSelectionScreen(),
-      ),
-      GoRoute(
-        path: '/register',
-        builder: (context, state) {
-          final roleParam = state.uri.queryParameters['role'];
-          final role = UserRole.fromValue(roleParam);
-          return RegisterScreen(role: role);
-        },
-      ),
+      // --- Rutas públicas de auth ---
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (_, __) => const LoginScreen(),
       ),
       GoRoute(
         path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (_, __) => const ForgotPasswordScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const _HomePlaceholder(),
-      ),
-    ],
-  );
-}
 
-/// Placeholder del home. En la Fase 3+ se reemplaza por el shell real con
-/// navegación bottom-bar y las pantallas de cada rol.
-class _HomePlaceholder extends ConsumerWidget {
-  const _HomePlaceholder();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final roleAsync = ref.watch(currentUserRoleProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nexuly'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              await ref.read(authControllerProvider.notifier).signOut();
-            },
+      // --- Zona PACIENTE (con bottom nav) ---
+      ShellRoute(
+        builder: (context, state, child) => PatientShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/home',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientHomePlaceholder()),
+          ),
+          GoRoute(
+            path: '/search',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientSearchPlaceholder()),
+          ),
+          GoRoute(
+            path: '/bookings',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientBookingsPlaceholder()),
+          ),
+          GoRoute(
+            path: '/history',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientHistoryPlaceholder()),
+          ),
+          GoRoute(
+            path: '/profile',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientProfilePlaceholder()),
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.check_circle_rounded,
-                size: 72,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '¡Bienvenido!',
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              roleAsync.when(
-                data: (role) => Text(
-                  role == null
-                      ? 'Sesión activa sin documento en Firestore'
-                      : 'Rol detectado: ${role.displayName}',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                loading: () => const CircularProgressIndicator(),
-                error: (e, _) => Text('Error: $e'),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Próxima fase: Onboarding y perfiles',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+
+      // --- Zona PROFESIONAL (con bottom nav) ---
+      ShellRoute(
+        builder: (context, state, child) => ProfessionalShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/pro/home',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ProfessionalHomePlaceholder()),
           ),
-        ),
+          GoRoute(
+            path: '/pro/requests',
+            pageBuilder: (_, __) => const NoTransitionPage(
+                child: ProfessionalRequestsPlaceholder()),
+          ),
+          GoRoute(
+            path: '/pro/availability',
+            pageBuilder: (_, __) => const NoTransitionPage(
+                child: ProfessionalAvailabilityPlaceholder()),
+          ),
+          GoRoute(
+            path: '/pro/services',
+            pageBuilder: (_, __) => const NoTransitionPage(
+                child: ProfessionalServicesPlaceholder()),
+          ),
+          GoRoute(
+            path: '/pro/profile',
+            pageBuilder: (_, __) => const NoTransitionPage(
+                child: ProfessionalProfilePlaceholder()),
+          ),
+        ],
       ),
-    );
-  }
+    ],
+  );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -13,9 +14,9 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // NOTA: App Check está desactivado temporalmente. Lo activaremos cerca
-  // del deploy a producción. Mientras tanto, las Firestore Security Rules
-  // son la única (y suficiente) protección.
+  // NOTA: App Check se reactivará en una sesión futura cuando tengas la
+  // site key de reCAPTCHA v3 configurada. Las Firestore Security Rules ya
+  // están desplegadas y son la protección principal.
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -37,13 +38,7 @@ class NexulyApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Nexuly',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0066FF),
-          brightness: Brightness.light,
-        ),
-      ),
+      theme: AppTheme.light(),
       routerConfig: router,
     );
   }
