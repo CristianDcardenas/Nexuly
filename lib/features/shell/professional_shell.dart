@@ -11,11 +11,42 @@ class ProfessionalShell extends ConsumerWidget {
   final Widget child;
 
   static const _tabs = [
-    _TabItem(path: '/pro/home', icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Inicio'),
-    _TabItem(path: '/pro/requests', icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today, label: 'Solicitudes'),
-    _TabItem(path: '/pro/availability', icon: Icons.schedule, activeIcon: Icons.schedule, label: 'Horarios'),
-    _TabItem(path: '/pro/services', icon: Icons.medical_services_outlined, activeIcon: Icons.medical_services, label: 'Servicios'),
-    _TabItem(path: '/pro/profile', icon: Icons.person_outline, activeIcon: Icons.person, label: 'Perfil'),
+    _TabItem(
+      path: '/pro/home',
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home,
+      label: 'Inicio',
+    ),
+    _TabItem(
+      path: '/pro/requests',
+      icon: Icons.calendar_today_outlined,
+      activeIcon: Icons.calendar_today,
+      label: 'Solicitudes',
+    ),
+    _TabItem(
+      path: '/pro/analytics',
+      icon: Icons.bar_chart_outlined,
+      activeIcon: Icons.bar_chart,
+      label: 'Stats',
+    ),
+    _TabItem(
+      path: '/pro/availability',
+      icon: Icons.schedule,
+      activeIcon: Icons.schedule,
+      label: 'Horarios',
+    ),
+    _TabItem(
+      path: '/pro/services',
+      icon: Icons.medical_services_outlined,
+      activeIcon: Icons.medical_services,
+      label: 'Servicios',
+    ),
+    _TabItem(
+      path: '/pro/profile',
+      icon: Icons.person_outline,
+      activeIcon: Icons.person,
+      label: 'Perfil',
+    ),
   ];
 
   int _currentIndex(String location) {
@@ -42,8 +73,10 @@ class ProfessionalShell extends ConsumerWidget {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: AppColors.gray600),
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.gray600,
+                ),
                 onPressed: () {},
               ),
               Positioned(

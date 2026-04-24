@@ -38,6 +38,13 @@ abstract class CacheKeys {
 
   /// JSON: resultados cacheados del home (últimos profs recomendados).
   static const String homeSnapshot = 'home_snapshot';
+
+  /// JSON: ultimo dashboard administrativo calculado.
+  static const String analyticsAdminSnapshot = 'analytics_admin_snapshot';
+
+  /// JSON: ultimo dashboard calculado para un profesional.
+  static String analyticsProfessionalSnapshot(String uid) =>
+      'analytics_professional_snapshot_$uid';
 }
 
 /// Envuelve un valor con su timestamp para poder implementar TTL.

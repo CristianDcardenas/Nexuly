@@ -7,12 +7,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/active_service/presentation/active_service_screen.dart';
 import '../../features/admin/presentation/admin_validation_screen.dart';
+import '../../features/analytics/presentation/analytics_dashboard_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
 import '../../features/booking/presentation/booking_confirmation_screen.dart';
 import '../../features/booking/presentation/booking_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/professional_detail/presentation/professional_detail_screen.dart';
 import '../../features/qr/presentation/qr_scan_result_screen.dart';
 import '../../features/qr/presentation/qr_scanner_screen.dart';
@@ -24,6 +26,7 @@ import '../../features/shell/professional_placeholders.dart';
 import '../../features/shell/professional_shell.dart';
 import '../../features/user_profile/presentation/user_profile_screen.dart';
 import '../constants/role.dart';
+import '../services/onboarding_service.dart';
 import '../services/qr_payload.dart';
 
 part 'app_router.g.dart';
@@ -45,6 +48,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
 @Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
   final authRepo = ref.watch(authRepositoryProvider);
+  final onboardingService = ref.watch(onboardingServiceProvider);
 
   return GoRouter(
     initialLocation: '/login',
@@ -52,8 +56,18 @@ GoRouter appRouter(Ref ref) {
     refreshListenable: _GoRouterRefreshStream(authRepo.authStateChanges),
     redirect: (context, state) async {
       final loc = state.matchedLocation;
+      final completedOnboarding = await onboardingService.isCompleted();
       final isLoggedIn = authRepo.currentUser != null;
+      final isOnboardingRoute = loc == '/onboarding';
       final isAuthRoute = loc == '/login' || loc == '/forgot-password';
+
+      if (!completedOnboarding) {
+        return isOnboardingRoute ? null : '/onboarding';
+      }
+
+      if (isOnboardingRoute) {
+        return isLoggedIn ? '/home' : '/login';
+      }
 
       if (!isLoggedIn) {
         return isAuthRoute ? null : '/login';
@@ -99,6 +113,10 @@ GoRouter appRouter(Ref ref) {
 
     routes: [
       // --- Auth pública ---
+      GoRoute(
+        path: '/onboarding',
+        builder: (_, __) => const OnboardingScreen(),
+      ),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/forgot-password',
@@ -107,6 +125,11 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/admin/validation',
         builder: (_, __) => const AdminValidationScreen(),
+      ),
+      GoRoute(
+        path: '/admin/analytics',
+        builder: (_, __) =>
+            const AnalyticsDashboardScreen(mode: AnalyticsDashboardMode.admin),
       ),
 
       // --- Detalle de profesional (fullscreen) ---
@@ -220,6 +243,14 @@ GoRouter appRouter(Ref ref) {
             path: '/pro/requests',
             pageBuilder: (_, __) => const NoTransitionPage(
               child: ProfessionalRequestsPlaceholder(),
+            ),
+          ),
+          GoRoute(
+            path: '/pro/analytics',
+            pageBuilder: (_, __) => const NoTransitionPage(
+              child: AnalyticsDashboardScreen(
+                mode: AnalyticsDashboardMode.professional,
+              ),
             ),
           ),
           GoRoute(

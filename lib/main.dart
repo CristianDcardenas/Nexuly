@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 import 'core/storage/local_cache.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
@@ -12,14 +13,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // --- Firebase ---
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // --- Almacenamiento local (Hive) ---
   // Reto 1: persistencia offline. Se inicializa antes de runApp porque
   // algunos providers leen el cache en su build() inicial.
   await initializeLocalStorage();
+
+  await NotificationService.instance.initialize();
 
   // NOTA: App Check sigue desactivado — reactivar cerca del deploy.
 
@@ -44,6 +45,8 @@ class NexulyApp extends ConsumerWidget {
       title: 'Nexuly',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: router,
     );
   }
