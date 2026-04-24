@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/professional.dart';
 import '../../../data/repositories/professionals_repository.dart';
 import '../../../data/repositories/users_repository.dart';
+import '../../../shared/widgets/nexuly_pressable.dart';
+import '../../../shared/widgets/nexuly_shimmer.dart';
 import '../../../shared/widgets/professional_card.dart';
 
 part 'home_screen.g.dart';
@@ -47,6 +50,8 @@ class HomeScreen extends ConsumerWidget {
           _WelcomeCard(
             firstName: profileAsync.valueOrNull?.fullName.split(' ').first,
           ),
+          const SizedBox(height: AppSpacing.xxl),
+          const _CareNotificationsPanel(),
           const SizedBox(height: AppSpacing.xxl),
 
           // --- Grid de categorías ---
@@ -90,10 +95,7 @@ class HomeScreen extends ConsumerWidget {
                 ],
               );
             },
-            loading: () => const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: CircularProgressIndicator()),
-            ),
+            loading: () => const _ProfessionalsShimmer(),
             error: (e, _) => _ErrorState(error: '$e'),
           ),
 
@@ -129,6 +131,182 @@ class HomeScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 // Widgets internos
 // ---------------------------------------------------------------------------
+
+class _CareNotificationsPanel extends StatelessWidget {
+  const _CareNotificationsPanel();
+
+  Future<void> _scheduleDaily(BuildContext context) async {
+    final now = TimeOfDay.now();
+    final minute = (now.minute + 1) % 60;
+    final hour = minute == 0 ? (now.hour + 1) % 24 : now.hour;
+
+    await NotificationService.instance.scheduleDailyCareReminder(
+      hour: hour,
+      minute: minute,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Recordatorio diario programado.')),
+    );
+  }
+
+  Future<void> _scheduleAppointment(BuildContext context) async {
+    await NotificationService.instance.scheduleUpcomingAppointmentAlert();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Alerta de reserva en 15 segundos.')),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outline),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.warningBg,
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                ),
+                child: const Icon(
+                  Icons.notifications_active_outlined,
+                  color: AppColors.warningText,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  'La app habla primero',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _CareAction(
+                  icon: Icons.medication_outlined,
+                  label: 'Recordatorio',
+                  onTap: () => _scheduleDaily(context),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _CareAction(
+                  icon: Icons.event_available_outlined,
+                  label: 'Alerta cita',
+                  onTap: () => _scheduleAppointment(context),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CareAction extends StatelessWidget {
+  const _CareAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return NexulyPressable(
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      onTap: onTap,
+      child: Container(
+        height: 76,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.violet50,
+          borderRadius: BorderRadius.circular(AppRadii.md),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.violet600, size: 22),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.violet700,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfessionalsShimmer extends StatelessWidget {
+  const _ProfessionalsShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var i = 0; i < 3; i++) ...[
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+            ),
+            child: const Row(
+              children: [
+                NexulyShimmer(width: 56, height: 56, borderRadius: AppRadii.lg),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      NexulyShimmer(width: double.infinity, height: 14),
+                      SizedBox(height: AppSpacing.sm),
+                      NexulyShimmer(width: 160, height: 12),
+                      SizedBox(height: AppSpacing.sm),
+                      NexulyShimmer(width: 96, height: 12),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ],
+    );
+  }
+}
 
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.title);

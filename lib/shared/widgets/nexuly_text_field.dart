@@ -41,16 +41,26 @@ class NexulyTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final labelColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppColors.gray700;
+    final textColor = isDark ? theme.colorScheme.onSurface : AppColors.gray700;
+    final iconColor = isDark
+        ? theme.colorScheme.onSurfaceVariant
+        : AppColors.gray400;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null) ...[
           Text(
             label!,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: AppColors.gray700,
+              color: labelColor,
             ),
           ),
           const SizedBox(height: 6),
@@ -65,7 +75,8 @@ class NexulyTextField extends StatelessWidget {
           autofillHints: autofillHints,
           maxLines: obscureText ? 1 : maxLines,
           enabled: enabled,
-          style: const TextStyle(fontSize: 15, color: AppColors.gray900),
+          cursorColor: AppColors.violet600,
+          style: TextStyle(fontSize: 15, color: textColor),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefixIcon != null
@@ -74,7 +85,7 @@ class NexulyTextField extends StatelessWidget {
                       left: AppSpacing.lg,
                       right: AppSpacing.sm,
                     ),
-                    child: Icon(prefixIcon, color: AppColors.gray400, size: 20),
+                    child: Icon(prefixIcon, color: iconColor, size: 20),
                   )
                 : null,
             prefixIconConstraints: const BoxConstraints(minWidth: 44),

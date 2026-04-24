@@ -28,6 +28,15 @@ class ServiceRequestsRepository
   @override
   Map<String, dynamic> toJson(ServiceRequest model) => model.toJson();
 
+  /// Historial reciente global para dashboard administrativo.
+  Stream<List<ServiceRequest>> watchRecent({int limit = 400}) {
+    return collection
+        .orderBy('requested_date', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(mapQuery);
+  }
+
   /// Historial del usuario (requiere índice: user_id + status + created_at).
   Stream<List<ServiceRequest>> watchByUser(String userId, {int limit = 50}) {
     return collection
@@ -62,9 +71,7 @@ class ServiceRequestsRepository
     String? reason,
   }) async {
     final ref = collection.doc(requestId);
-    final historyRef = ref
-        .collection(FirestoreCollections.statusHistory)
-        .doc();
+    final historyRef = ref.collection(FirestoreCollections.statusHistory).doc();
 
     await _firestore.runTransaction((tx) async {
       final snap = await tx.get(ref);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/services/notification_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../shared/widgets/nexuly_logo.dart';
 
@@ -15,11 +16,36 @@ class PatientShell extends ConsumerWidget {
   final Widget child;
 
   static const _tabs = [
-    _TabItem(path: '/home', icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Inicio'),
-    _TabItem(path: '/search', icon: Icons.search, activeIcon: Icons.search, label: 'Buscar'),
-    _TabItem(path: '/bookings', icon: Icons.calendar_today_outlined, activeIcon: Icons.calendar_today, label: 'Reservas'),
-    _TabItem(path: '/history', icon: Icons.history, activeIcon: Icons.history, label: 'Historial'),
-    _TabItem(path: '/profile', icon: Icons.person_outline, activeIcon: Icons.person, label: 'Perfil'),
+    _TabItem(
+      path: '/home',
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home,
+      label: 'Inicio',
+    ),
+    _TabItem(
+      path: '/search',
+      icon: Icons.search,
+      activeIcon: Icons.search,
+      label: 'Buscar',
+    ),
+    _TabItem(
+      path: '/bookings',
+      icon: Icons.calendar_today_outlined,
+      activeIcon: Icons.calendar_today,
+      label: 'Reservas',
+    ),
+    _TabItem(
+      path: '/history',
+      icon: Icons.history,
+      activeIcon: Icons.history,
+      label: 'Historial',
+    ),
+    _TabItem(
+      path: '/profile',
+      icon: Icons.person_outline,
+      activeIcon: Icons.person,
+      label: 'Perfil',
+    ),
   ];
 
   int _currentIndex(String location) {
@@ -53,10 +79,16 @@ class PatientShell extends ConsumerWidget {
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.notifications_outlined,
-                    color: AppColors.gray600),
-                onPressed: () {
-                  // TODO: navegar a /notifications cuando exista
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.gray600,
+                ),
+                onPressed: () async {
+                  await NotificationService.instance.showCareAlert(
+                    title: 'Nexuly está atento',
+                    body:
+                        'Cuando haya cambios importantes, te avisaremos aquí.',
+                  );
                 },
               ),
               Positioned(
