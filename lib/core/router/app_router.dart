@@ -8,6 +8,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
+import '../../features/booking/presentation/booking_confirmation_screen.dart';
+import '../../features/booking/presentation/booking_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/professional_detail/presentation/professional_detail_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
@@ -69,7 +71,8 @@ GoRouter appRouter(Ref ref) {
           loc.startsWith('/history/') ||
           loc == '/profile' ||
           loc.startsWith('/profile/') ||
-          loc.startsWith('/professional/');
+          loc.startsWith('/professional/') ||
+          loc.startsWith('/booking/');
       // IMPORTANTE: usamos `/pro/` con slash para no capturar `/professional/:id`
       // (esa ruta es de detalle accesible para pacientes).
       final isProRoute = loc == '/pro' || loc.startsWith('/pro/');
@@ -99,6 +102,20 @@ GoRouter appRouter(Ref ref) {
         path: '/professional/:id',
         builder: (context, state) => ProfessionalDetailScreen(
           professionalId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // --- Flujo de reserva (fullscreen, fuera del shell) ---
+      GoRoute(
+        path: '/booking/:id',
+        builder: (context, state) => BookingScreen(
+          professionalId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/booking-confirmation/:id',
+        builder: (context, state) => BookingConfirmationScreen(
+          requestId: state.pathParameters['id']!,
         ),
       ),
 

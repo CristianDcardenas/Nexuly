@@ -222,14 +222,8 @@ class _DetailBody extends StatelessWidget {
               child: NexulyGradientButton(
                 label: 'Agendar servicio',
                 icon: Icons.calendar_today_outlined,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          'Agendamiento disponible en el próximo sprint'),
-                    ),
-                  );
-                },
+                onPressed: () =>
+                    context.push('/booking/${professional.uid}'),
               ),
             ),
           ),

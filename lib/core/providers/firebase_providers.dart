@@ -28,5 +28,5 @@ Stream<User?> authStateChanges(Ref ref) =>
 @riverpod
 String? currentUserId(Ref ref) {
   final auth = ref.watch(authStateChangesProvider);
-  return auth.valueOrNull?.uid;
+  return auth.value?.uid;
 }
