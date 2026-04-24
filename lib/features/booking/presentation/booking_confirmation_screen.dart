@@ -20,26 +20,22 @@ import '../../../shared/widgets/user_avatar.dart';
 // Feature-local providers
 // ---------------------------------------------------------------------------
 
-final _confirmationRequestProvider =
-    StreamProvider.autoDispose.family<ServiceRequest?, String>(
-  (ref, id) => ref.watch(serviceRequestsRepositoryProvider).watchById(id),
-);
+final _confirmationRequestProvider = StreamProvider.autoDispose
+    .family<ServiceRequest?, String>(
+      (ref, id) => ref.watch(serviceRequestsRepositoryProvider).watchById(id),
+    );
 
-final _confirmationProProvider =
-    FutureProvider.autoDispose.family<Professional?, String>(
-  (ref, id) async {
-    if (id.isEmpty) return null;
-    return ref.watch(professionalsRepositoryProvider).getById(id);
-  },
-);
+final _confirmationProProvider = FutureProvider.autoDispose
+    .family<Professional?, String>((ref, id) async {
+      if (id.isEmpty) return null;
+      return ref.watch(professionalsRepositoryProvider).getById(id);
+    });
 
-final _confirmationSvcProvider =
-    FutureProvider.autoDispose.family<Service?, String>(
-  (ref, id) async {
-    if (id.isEmpty) return null;
-    return ref.watch(servicesRepositoryProvider).getById(id);
-  },
-);
+final _confirmationSvcProvider = FutureProvider.autoDispose
+    .family<Service?, String>((ref, id) async {
+      if (id.isEmpty) return null;
+      return ref.watch(servicesRepositoryProvider).getById(id);
+    });
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -111,15 +107,16 @@ class _BookingConfirmationScreenState
     if (status == ServiceRequestStatus.confirmed) {
       _redirectStarted = true;
       Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) context.go('/active-service/${widget.requestId}');
+        if (mounted) context.go('/active/${widget.requestId}');
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final requestAsync =
-        ref.watch(_confirmationRequestProvider(widget.requestId));
+    final requestAsync = ref.watch(
+      _confirmationRequestProvider(widget.requestId),
+    );
 
     // Drive redirect from stream
     ref.listen(_confirmationRequestProvider(widget.requestId), (_, next) {
@@ -134,7 +131,8 @@ class _BookingConfirmationScreenState
     final svcAsync = ref.watch(_confirmationSvcProvider(serviceId));
 
     final status = ServiceRequestStatus.fromValue(request?.status);
-    final isRejected = status == ServiceRequestStatus.cancelled ||
+    final isRejected =
+        status == ServiceRequestStatus.cancelled ||
         status == ServiceRequestStatus.noShow;
     final isAccepted = status == ServiceRequestStatus.confirmed;
 
@@ -156,19 +154,17 @@ class _BookingConfirmationScreenState
             service: svcAsync.value,
             isAccepted: isAccepted,
             requestId: widget.requestId,
-            onCallTap: () => _showContactSnack(
-              context,
-              proAsync.value?.phone ?? '',
-            ),
-            onEmailTap: () => _showContactSnack(
-              context,
-              proAsync.value?.email ?? '',
-            ),
+            onCallTap: () =>
+                _showContactSnack(context, proAsync.value?.phone ?? ''),
+            onEmailTap: () =>
+                _showContactSnack(context, proAsync.value?.email ?? ''),
           ),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(
-            child: Text('Error: $e',
-                style: const TextStyle(color: AppColors.dangerText)),
+            child: Text(
+              'Error: $e',
+              style: const TextStyle(color: AppColors.dangerText),
+            ),
           ),
         ),
       ),
@@ -177,9 +173,7 @@ class _BookingConfirmationScreenState
 
   void _showContactSnack(BuildContext context, String value) {
     if (value.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 }
 
@@ -242,7 +236,7 @@ class _Content extends StatelessWidget {
           requestId: requestId,
           onGoHistory: () => context.go('/history'),
           onGoHome: () => context.go('/home'),
-          onGoActiveService: () => context.go('/active-service/$requestId'),
+          onGoActiveService: () => context.go('/active/$requestId'),
         ),
         const SizedBox(height: AppSpacing.xxl),
       ],
@@ -271,8 +265,11 @@ class _StatusHeader extends StatelessWidget {
             color: isAccepted ? AppColors.successBg : AppColors.violet100,
           ),
           child: isAccepted
-              ? const Icon(Icons.check_circle_outline,
-                  size: 40, color: AppColors.success)
+              ? const Icon(
+                  Icons.check_circle_outline,
+                  size: 40,
+                  color: AppColors.success,
+                )
               : const _PulsingClock(),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -329,8 +326,11 @@ class _PulsingClockState extends State<_PulsingClock>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: const Icon(Icons.access_time_rounded,
-          size: 40, color: AppColors.violet600),
+      child: const Icon(
+        Icons.access_time_rounded,
+        size: 40,
+        color: AppColors.violet600,
+      ),
     );
   }
 }
@@ -395,29 +395,39 @@ class _ProfessionalCard extends StatelessWidget {
                     Text(
                       _specialty(professional),
                       style: const TextStyle(
-                          fontSize: 13, color: AppColors.gray600),
+                        fontSize: 13,
+                        color: AppColors.gray600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded,
-                            size: 14, color: Color(0xFFFBBF24)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Color(0xFFFBBF24),
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           professional.ratingAvg.toStringAsFixed(1),
                           style: const TextStyle(
-                              fontSize: 13, color: AppColors.gray700),
+                            fontSize: 13,
+                            color: AppColors.gray700,
+                          ),
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Text('•',
-                              style:
-                                  TextStyle(color: AppColors.gray300)),
+                          child: Text(
+                            '•',
+                            style: TextStyle(color: AppColors.gray300),
+                          ),
                         ),
                         Text(
                           '${professional.ratingCount} reseñas',
                           style: const TextStyle(
-                              fontSize: 13, color: AppColors.gray600),
+                            fontSize: 13,
+                            color: AppColors.gray600,
+                          ),
                         ),
                       ],
                     ),
@@ -492,8 +502,7 @@ class _ContactButton extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
-                  fontSize: 13, color: AppColors.gray700),
+              style: const TextStyle(fontSize: 13, color: AppColors.gray700),
             ),
           ],
         ),
@@ -529,8 +538,7 @@ class _BookingDetails extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = request.requestedDate;
-    final dateStr =
-        '${date.day} ${_monthName(date.month)} ${date.year}';
+    final dateStr = '${date.day} ${_monthName(date.month)} ${date.year}';
     final hour = date.hour;
     final minute = date.minute.toString().padLeft(2, '0');
     final period = hour >= 12 ? 'PM' : 'AM';
@@ -581,9 +589,20 @@ class _BookingDetails extends StatelessWidget {
   }
 
   static String _monthName(int m) => const [
-        '', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-      ][m];
+    '',
+    'Ene',
+    'Feb',
+    'Mar',
+    'Abr',
+    'May',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dic',
+  ][m];
 }
 
 class _DetailRow extends StatelessWidget {
@@ -610,14 +629,15 @@ class _DetailRow extends StatelessWidget {
             children: [
               Text(
                 primary,
-                style: const TextStyle(
-                    fontSize: 13, color: AppColors.gray900),
+                style: const TextStyle(fontSize: 13, color: AppColors.gray900),
               ),
               if (secondary != null)
                 Text(
                   secondary!,
                   style: const TextStyle(
-                      fontSize: 11, color: AppColors.gray600),
+                    fontSize: 11,
+                    color: AppColors.gray600,
+                  ),
                 ),
             ],
           ),
@@ -746,8 +766,11 @@ class _StatusInfoCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.check_circle_outline,
-                size: 20, color: AppColors.success),
+            const Icon(
+              Icons.check_circle_outline,
+              size: 20,
+              color: AppColors.success,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -765,7 +788,9 @@ class _StatusInfoCard extends StatelessWidget {
                   Text(
                     '${professionalName ?? 'El profesional'} confirmó tu reserva. Te redirigiremos al seguimiento en tiempo real...',
                     style: const TextStyle(
-                        fontSize: 11, color: AppColors.gray600),
+                      fontSize: 11,
+                      color: AppColors.gray600,
+                    ),
                   ),
                 ],
               ),
@@ -789,8 +814,7 @@ class _StatusInfoCard extends StatelessWidget {
       child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.access_time_rounded,
-              size: 20, color: AppColors.violet600),
+          Icon(Icons.access_time_rounded, size: 20, color: AppColors.violet600),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -847,8 +871,7 @@ class _Actions extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.violet600,
             foregroundColor: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadii.md),
             ),
@@ -856,8 +879,7 @@ class _Actions extends StatelessWidget {
           ),
           child: const Text(
             'Ver seguimiento en tiempo real',
-            style:
-                TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -872,14 +894,12 @@ class _Actions extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.gray700,
               side: const BorderSide(color: AppColors.gray300),
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadii.md),
               ),
             ),
-            child: const Text('Ver mis citas',
-                style: TextStyle(fontSize: 14)),
+            child: const Text('Ver mis citas', style: TextStyle(fontSize: 14)),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -890,14 +910,15 @@ class _Actions extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.gray700,
               side: const BorderSide(color: AppColors.gray300),
-              padding:
-                  const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadii.md),
               ),
             ),
-            child: const Text('Volver al inicio',
-                style: TextStyle(fontSize: 14)),
+            child: const Text(
+              'Volver al inicio',
+              style: TextStyle(fontSize: 14),
+            ),
           ),
         ),
       ],
@@ -944,8 +965,11 @@ class _RejectionModal extends StatelessWidget {
                     color: AppColors.dangerBg,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close_rounded,
-                      size: 32, color: AppColors.danger),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    size: 32,
+                    color: AppColors.danger,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 const Text(
@@ -960,7 +984,9 @@ class _RejectionModal extends StatelessWidget {
                 Text(
                   'Lo sentimos, $professionalName no está disponible en este momento.',
                   style: const TextStyle(
-                      fontSize: 13, color: AppColors.gray600),
+                    fontSize: 13,
+                    color: AppColors.gray600,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -986,7 +1012,9 @@ class _RejectionModal extends StatelessWidget {
                       Text(
                         'Encontramos 12 profesionales similares disponibles en tu zona',
                         style: TextStyle(
-                            fontSize: 12, color: AppColors.gray600),
+                          fontSize: 12,
+                          color: AppColors.gray600,
+                        ),
                       ),
                     ],
                   ),
@@ -1000,17 +1028,20 @@ class _RejectionModal extends StatelessWidget {
                       backgroundColor: AppColors.violet600,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.md),
+                        vertical: AppSpacing.md,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppRadii.md),
+                        borderRadius: BorderRadius.circular(AppRadii.md),
                       ),
                       elevation: 0,
                     ),
-                    child: const Text('Ver profesionales disponibles',
-                        style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'Ver profesionales disponibles',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -1020,17 +1051,18 @@ class _RejectionModal extends StatelessWidget {
                     onPressed: onGoHistory,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.gray700,
-                      side:
-                          const BorderSide(color: AppColors.gray300),
+                      side: const BorderSide(color: AppColors.gray300),
                       padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.md),
+                        vertical: AppSpacing.md,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppRadii.md),
+                        borderRadius: BorderRadius.circular(AppRadii.md),
                       ),
                     ),
-                    child: const Text('Ir a mis citas',
-                        style: TextStyle(fontSize: 14)),
+                    child: const Text(
+                      'Ir a mis citas',
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ),
                 ),
               ],

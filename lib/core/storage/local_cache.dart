@@ -36,6 +36,13 @@ abstract class CacheKeys {
   /// JSON: última ubicación conocida del usuario.
   static const String lastLocation = 'last_location';
 
+  /// JSON: evidencias offline capturadas para un servicio.
+  static String serviceEvidence(String requestId) =>
+      'service_evidence_$requestId';
+
+  /// JSON: eventos QR/check-in capturados localmente.
+  static String qrCheckIns(String requestId) => 'qr_checkins_$requestId';
+
   /// JSON: resultados cacheados del home (últimos profs recomendados).
   static const String homeSnapshot = 'home_snapshot';
 

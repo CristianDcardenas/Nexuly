@@ -355,7 +355,7 @@ class _DashboardHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xxl),
       decoration: BoxDecoration(
-        color: AppColors.gray900,
+        gradient: AppColors.brandGradientSoft,
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: Column(

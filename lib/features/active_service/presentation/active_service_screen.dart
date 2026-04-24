@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/enums/domain_enums.dart';
+import '../../../core/services/service_evidence_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/professional.dart';
@@ -95,26 +99,24 @@ const _stageDelays = [5000, 3000, 8000];
 // Feature-local providers
 // ---------------------------------------------------------------------------
 
-final _activeRequestProvider =
-    StreamProvider.autoDispose.family<ServiceRequest?, String>(
-  (ref, id) => ref.watch(serviceRequestsRepositoryProvider).watchById(id),
-);
+final _activeRequestProvider = StreamProvider.autoDispose
+    .family<ServiceRequest?, String>(
+      (ref, id) => ref.watch(serviceRequestsRepositoryProvider).watchById(id),
+    );
 
-final _activeProProvider =
-    FutureProvider.autoDispose.family<Professional?, String>(
-  (ref, id) async {
-    if (id.isEmpty) return null;
-    return ref.watch(professionalsRepositoryProvider).getById(id);
-  },
-);
+final _activeProProvider = FutureProvider.autoDispose
+    .family<Professional?, String>((ref, id) async {
+      if (id.isEmpty) return null;
+      return ref.watch(professionalsRepositoryProvider).getById(id);
+    });
 
-final _activeSvcProvider =
-    FutureProvider.autoDispose.family<Service?, String>(
-  (ref, id) async {
-    if (id.isEmpty) return null;
-    return ref.watch(servicesRepositoryProvider).getById(id);
-  },
-);
+final _activeSvcProvider = FutureProvider.autoDispose.family<Service?, String>((
+  ref,
+  id,
+) async {
+  if (id.isEmpty) return null;
+  return ref.watch(servicesRepositoryProvider).getById(id);
+});
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -147,11 +149,12 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
       duration: const Duration(milliseconds: 850),
       vsync: this,
     )..repeat(reverse: true);
-    _pulseScale =
-        Tween<double>(begin: 0.92, end: 1.08).animate(_pulseController);
+    _pulseScale = Tween<double>(
+      begin: 0.92,
+      end: 1.08,
+    ).animate(_pulseController);
 
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _startSimulation());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startSimulation());
   }
 
   @override
@@ -213,15 +216,13 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
 
   @override
   Widget build(BuildContext context) {
-    final requestAsync =
-        ref.watch(_activeRequestProvider(widget.requestId));
+    final requestAsync = ref.watch(_activeRequestProvider(widget.requestId));
 
     final request = requestAsync.value;
     final professionalId = request?.professionalId ?? '';
     final serviceId = request?.serviceId ?? '';
 
-    final professional =
-        ref.watch(_activeProProvider(professionalId)).value;
+    final professional = ref.watch(_activeProProvider(professionalId)).value;
     final service = ref.watch(_activeSvcProvider(serviceId)).value;
 
     final current = _stages[_stage];
@@ -247,18 +248,28 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
                 const SizedBox(height: AppSpacing.lg),
                 _ProfessionalCard(
                   professional: professional,
-                  onCallTap: () => _showSnack(
-                    context,
-                    professional?.phone ?? '',
-                  ),
-                  onChatTap: () =>
-                      context.push('/chat/${widget.requestId}'),
+                  onCallTap: () =>
+                      _showSnack(context, professional?.phone ?? ''),
+                  onChatTap: () => context.push('/chat/${widget.requestId}'),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _ServiceDetailsCard(
                   request: request,
                   service: service,
+                  onQrTap: request == null
+                      ? null
+                      : () => context.push(
+                          '/qr/service/${request.id}',
+                          extra: {
+                            'patientUid': request.userId,
+                            'serviceId': request.serviceId,
+                            'patientName': 'Paciente',
+                            'serviceName': service?.name ?? 'Servicio',
+                          },
+                        ),
                 ),
+                const SizedBox(height: AppSpacing.lg),
+                _EvidenceCard(requestId: widget.requestId),
                 const SizedBox(height: AppSpacing.lg),
                 _TimelineCard(currentStage: _stage),
                 const SizedBox(height: AppSpacing.lg),
@@ -274,18 +285,19 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
                         backgroundColor: AppColors.violet600,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                            vertical: AppSpacing.md),
+                          vertical: AppSpacing.md,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppRadii.md),
+                          borderRadius: BorderRadius.circular(AppRadii.md),
                         ),
                         elevation: 0,
                       ),
                       child: const Text(
                         'Calificar servicio',
                         style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600),
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -301,9 +313,7 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
 
   void _showSnack(BuildContext context, String value) {
     if (value.isEmpty) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(value)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
   }
 }
 
@@ -340,9 +350,7 @@ class _MapSection extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors: [AppColors.violet100, AppColors.purple100],
               ),
-              border: Border(
-                bottom: BorderSide(color: AppColors.border),
-              ),
+              border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
           ),
 
@@ -484,8 +492,7 @@ class _StatusCard extends StatelessWidget {
           colors: [current.bgFrom, current.bgTo],
         ),
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: Border.all(
-            color: current.borderColor.withValues(alpha: 0.5)),
+        border: Border.all(color: current.borderColor.withValues(alpha: 0.5)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,7 +515,9 @@ class _StatusCard extends StatelessWidget {
                 Text(
                   current.description,
                   style: const TextStyle(
-                      fontSize: 13, color: AppColors.gray700),
+                    fontSize: 13,
+                    color: AppColors.gray700,
+                  ),
                 ),
               ],
             ),
@@ -580,18 +589,29 @@ class _ProfessionalCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(specialty,
-                        style: const TextStyle(
-                            fontSize: 13, color: AppColors.gray600)),
+                    Text(
+                      specialty,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.gray600,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded,
-                            size: 14, color: Color(0xFFFBBF24)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Color(0xFFFBBF24),
+                        ),
                         const SizedBox(width: 3),
-                        Text(rating,
-                            style: const TextStyle(
-                                fontSize: 13, color: AppColors.gray700)),
+                        Text(
+                          rating,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.gray700,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -606,13 +626,13 @@ class _ProfessionalCard extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: onCallTap,
                   icon: const Icon(Icons.phone_outlined, size: 16),
-                  label: const Text('Llamar',
-                      style: TextStyle(fontSize: 13)),
+                  label: const Text('Llamar', style: TextStyle(fontSize: 13)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.violet600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.sm + 2),
+                      vertical: AppSpacing.sm + 2,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadii.md),
                     ),
@@ -624,15 +644,14 @@ class _ProfessionalCard extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: onChatTap,
-                  icon: const Icon(Icons.chat_bubble_outline_rounded,
-                      size: 16),
-                  label: const Text('Chat',
-                      style: TextStyle(fontSize: 13)),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                  label: const Text('Chat', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.violet600,
                     side: const BorderSide(color: AppColors.violet600),
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.sm + 2),
+                      vertical: AppSpacing.sm + 2,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadii.md),
                     ),
@@ -681,10 +700,12 @@ class _ServiceDetailsCard extends StatelessWidget {
   const _ServiceDetailsCard({
     required this.request,
     required this.service,
+    required this.onQrTap,
   });
 
   final ServiceRequest? request;
   final Service? service;
+  final VoidCallback? onQrTap;
 
   @override
   Widget build(BuildContext context) {
@@ -732,15 +753,37 @@ class _ServiceDetailsCard extends StatelessWidget {
             primary: serviceName,
             secondary: null,
           ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: onQrTap,
+            icon: const Icon(Icons.qr_code_2, size: 16),
+            label: const Text('Mostrar QR de check-in'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.violet600,
+              side: const BorderSide(color: AppColors.violet200),
+              minimumSize: const Size.fromHeight(44),
+            ),
+          ),
         ],
       ),
     );
   }
 
   static String _month(int m) => const [
-        '', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-      ][m];
+    '',
+    'Ene',
+    'Feb',
+    'Mar',
+    'Abr',
+    'May',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dic',
+  ][m];
 
   static String _timeStr(DateTime d) {
     final h = d.hour;
@@ -752,11 +795,7 @@ class _ServiceDetailsCard extends StatelessWidget {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.primary,
-    this.secondary,
-  });
+  const _DetailRow({required this.icon, required this.primary, this.secondary});
 
   final IconData icon;
   final String primary;
@@ -773,17 +812,241 @@ class _DetailRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(primary,
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.gray900)),
+              Text(
+                primary,
+                style: const TextStyle(fontSize: 13, color: AppColors.gray900),
+              ),
               if (secondary != null)
-                Text(secondary!,
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.gray600)),
+                Text(
+                  secondary!,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.gray600,
+                  ),
+                ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Local evidence
+// ---------------------------------------------------------------------------
+
+class _EvidenceCard extends ConsumerWidget {
+  const _EvidenceCard({required this.requestId});
+
+  final String requestId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final evidenceAsync = ref.watch(serviceEvidenceProvider(requestId));
+    final evidence = evidenceAsync.valueOrNull ?? const <ServiceEvidenceItem>[];
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Evidencia local del servicio',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              color: AppColors.gray900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Fotos y videos quedan guardados en este dispositivo, incluso sin internet.',
+            style: TextStyle(fontSize: 11, color: AppColors.gray600),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: _EvidenceButton(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Foto',
+                  onTap: () => _capturePhoto(context, ref, ImageSource.camera),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _EvidenceButton(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Galeria',
+                  onTap: () => _capturePhoto(context, ref, ImageSource.gallery),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _EvidenceButton(
+                  icon: Icons.videocam_outlined,
+                  label: 'Video',
+                  onTap: () => _captureVideo(context, ref),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          if (evidenceAsync.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (evidence.isEmpty)
+            const Text(
+              'Aun no hay evidencia capturada.',
+              style: TextStyle(fontSize: 12, color: AppColors.gray500),
+            )
+          else
+            Column(
+              children: [
+                for (final item in evidence.take(4)) ...[
+                  _EvidenceTile(item: item),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _capturePhoto(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+  ) async {
+    final item = await ref
+        .read(serviceEvidenceServiceProvider)
+        .capturePhoto(requestId: requestId, source: source);
+    if (!context.mounted || item == null) return;
+    ref.invalidate(serviceEvidenceProvider(requestId));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Foto guardada localmente.')));
+  }
+
+  Future<void> _captureVideo(BuildContext context, WidgetRef ref) async {
+    final item = await ref
+        .read(serviceEvidenceServiceProvider)
+        .captureVideo(requestId: requestId);
+    if (!context.mounted || item == null) return;
+    ref.invalidate(serviceEvidenceProvider(requestId));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Video guardado localmente.')));
+  }
+}
+
+class _EvidenceButton extends StatelessWidget {
+  const _EvidenceButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(42),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EvidenceTile extends StatelessWidget {
+  const _EvidenceTile({required this.item});
+
+  final ServiceEvidenceItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final isPhoto = item.type == ServiceEvidenceType.photo;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.gray50,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadii.sm),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: isPhoto
+                  ? Image.memory(
+                      base64Decode(item.base64),
+                      fit: BoxFit.cover,
+                      gaplessPlayback: true,
+                    )
+                  : Container(
+                      color: AppColors.violet100,
+                      child: const Icon(
+                        Icons.play_circle_outline,
+                        color: AppColors.violet600,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isPhoto ? 'Foto del servicio' : 'Video del servicio',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.gray900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.hasLocation
+                      ? 'GPS ${item.latitude!.toStringAsFixed(4)}, ${item.longitude!.toStringAsFixed(4)}'
+                      : 'Sin GPS registrado',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.gray500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.offline_pin_outlined, color: AppColors.success),
+        ],
+      ),
     );
   }
 }
@@ -841,9 +1104,7 @@ class _TimelineCard extends StatelessWidget {
                     child: Icon(
                       stage.icon,
                       size: 20,
-                      color: isReached
-                          ? stage.iconColor
-                          : AppColors.gray400,
+                      color: isReached ? stage.iconColor : AppColors.gray400,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -862,8 +1123,8 @@ class _TimelineCard extends StatelessWidget {
                             color: isCurrent
                                 ? AppColors.gray900
                                 : isReached
-                                    ? AppColors.gray700
-                                    : AppColors.gray500,
+                                ? AppColors.gray700
+                                : AppColors.gray500,
                           ),
                         ),
                         if (isCurrent) ...[
@@ -871,7 +1132,9 @@ class _TimelineCard extends StatelessWidget {
                           Text(
                             stage.description,
                             style: const TextStyle(
-                                fontSize: 11, color: AppColors.gray600),
+                              fontSize: 11,
+                              color: AppColors.gray600,
+                            ),
                           ),
                         ],
                       ],
