@@ -107,10 +107,7 @@ class _ProfileBody extends ConsumerWidget {
               const SizedBox(height: 2),
               Text(
                 user.email,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.gray600,
-                ),
+                style: const TextStyle(fontSize: 13, color: AppColors.gray600),
               ),
               const SizedBox(height: AppSpacing.md),
               Wrap(
@@ -276,24 +273,29 @@ class _ProfileBody extends ConsumerWidget {
   }
 
   void _showSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Próximamente')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Próximamente')));
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      useRootNavigator: true,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('¿Cerrar sesión?'),
-        content: const Text('Tendrás que volver a iniciar sesión para usar la app.'),
+        content: const Text(
+          'Tendrás que volver a iniciar sesión para usar la app.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () =>
+                Navigator.of(dialogContext, rootNavigator: true).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             child: const Text('Cerrar sesión'),
           ),
@@ -402,8 +404,11 @@ class _VerificationProgressCard extends StatelessWidget {
                   color: AppColors.violet100,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.workspace_premium_outlined,
-                    color: AppColors.violet600, size: 20),
+                child: const Icon(
+                  Icons.workspace_premium_outlined,
+                  color: AppColors.violet600,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -491,8 +496,11 @@ class _VerificationProgressCard extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle,
-                        color: AppColors.success, size: 14),
+                    const Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 14,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       step,
@@ -601,8 +609,11 @@ class _MenuTile extends StatelessWidget {
                   ),
                 ),
               ),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.gray400, size: 20),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.gray400,
+                size: 20,
+              ),
             ],
           ),
         ),
@@ -643,16 +654,16 @@ class _SavedProfessionalsCard extends StatelessWidget {
                     color: AppColors.gray100,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.favorite_outline,
-                      size: 24, color: AppColors.gray400),
+                  child: const Icon(
+                    Icons.favorite_outline,
+                    size: 24,
+                    color: AppColors.gray400,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 const Text(
                   'No has guardado ningún profesional',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.gray600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.gray600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.md),

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../features/active_service/presentation/active_service_screen.dart';
+import '../../features/admin/presentation/admin_validation_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
@@ -30,9 +31,7 @@ part 'app_router.g.dart';
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-          (_) => notifyListeners(),
-        );
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
   }
   late final StreamSubscription<dynamic> _subscription;
 
@@ -62,11 +61,13 @@ GoRouter appRouter(Ref ref) {
 
       if (isAuthRoute) {
         final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
+        if (role == UserRole.admin) return '/admin/validation';
         if (role == UserRole.professional) return '/pro/home';
         return '/home';
       }
 
-      final isPatientRoute = loc == '/home' ||
+      final isPatientRoute =
+          loc == '/home' ||
           loc.startsWith('/home/') ||
           loc == '/search' ||
           loc.startsWith('/search/') ||
@@ -81,9 +82,14 @@ GoRouter appRouter(Ref ref) {
           loc.startsWith('/active/') ||
           loc.startsWith('/qr/');
       final isProRoute = loc == '/pro' || loc.startsWith('/pro/');
+      final isAdminRoute = loc == '/admin' || loc.startsWith('/admin/');
 
-      if (isPatientRoute || isProRoute) {
+      if (isPatientRoute || isProRoute || isAdminRoute) {
         final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
+        if (role == UserRole.admin && !isAdminRoute) {
+          return '/admin/validation';
+        }
+        if (role != UserRole.admin && isAdminRoute) return '/home';
         if (role == UserRole.professional && isPatientRoute) return '/pro/home';
         if (role == UserRole.patient && isProRoute) return '/home';
       }
@@ -93,13 +99,14 @@ GoRouter appRouter(Ref ref) {
 
     routes: [
       // --- Auth pública ---
-      GoRoute(
-        path: '/login',
-        builder: (_, __) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(
         path: '/forgot-password',
         builder: (_, __) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/admin/validation',
+        builder: (_, __) => const AdminValidationScreen(),
       ),
 
       // --- Detalle de profesional (fullscreen) ---
@@ -113,23 +120,20 @@ GoRouter appRouter(Ref ref) {
       // --- Flujo de reserva (fullscreen) ---
       GoRoute(
         path: '/booking/:id',
-        builder: (context, state) => BookingScreen(
-          professionalId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            BookingScreen(professionalId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/booking-confirmation/:id',
-        builder: (context, state) => BookingConfirmationScreen(
-          requestId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            BookingConfirmationScreen(requestId: state.pathParameters['id']!),
       ),
 
       // --- Servicio activo (fullscreen) ---
       GoRoute(
         path: '/active/:id',
-        builder: (context, state) => ActiveServiceScreen(
-          requestId: state.pathParameters['id']!,
-        ),
+        builder: (context, state) =>
+            ActiveServiceScreen(requestId: state.pathParameters['id']!),
       ),
 
       // --- QR: generar código de check-in (paciente) ---
@@ -162,9 +166,7 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) {
           final payload = state.extra as NexulyQrPayload?;
           if (payload == null) {
-            return const Scaffold(
-              body: Center(child: Text('QR inválido')),
-            );
+            return const Scaffold(body: Center(child: Text('QR inválido')));
           }
           return QrScanResultScreen(payload: payload);
         },
@@ -176,8 +178,7 @@ GoRouter appRouter(Ref ref) {
         routes: [
           GoRoute(
             path: '/home',
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: HomeScreen()),
+            pageBuilder: (_, __) => const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/search',
@@ -218,22 +219,25 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/pro/requests',
             pageBuilder: (_, __) => const NoTransitionPage(
-                child: ProfessionalRequestsPlaceholder()),
+              child: ProfessionalRequestsPlaceholder(),
+            ),
           ),
           GoRoute(
             path: '/pro/availability',
             pageBuilder: (_, __) => const NoTransitionPage(
-                child: ProfessionalAvailabilityPlaceholder()),
+              child: ProfessionalAvailabilityPlaceholder(),
+            ),
           ),
           GoRoute(
             path: '/pro/services',
             pageBuilder: (_, __) => const NoTransitionPage(
-                child: ProfessionalServicesPlaceholder()),
+              child: ProfessionalServicesPlaceholder(),
+            ),
           ),
           GoRoute(
             path: '/pro/profile',
-            pageBuilder: (_, __) => const NoTransitionPage(
-                child: ProfessionalProfilePlaceholder()),
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ProfessionalProfilePlaceholder()),
           ),
         ],
       ),

@@ -85,7 +85,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
-                      Text(
+                      const Text(
                         'Ingresa tu correo y te enviaremos un enlace '
                         'para restablecer tu contraseña.',
                         style: TextStyle(
@@ -159,7 +159,7 @@ class _SuccessView extends StatelessWidget {
         Text(
           'Enviamos un enlace de recuperación a $email. '
           'Revisa tu bandeja de entrada (y el spam).',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             color: AppColors.gray600,
           ),

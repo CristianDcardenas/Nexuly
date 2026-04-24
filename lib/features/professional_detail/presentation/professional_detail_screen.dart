@@ -215,7 +215,7 @@ class _DetailBody extends StatelessWidget {
                 AppSpacing.lg,
                 MediaQuery.of(context).padding.bottom + AppSpacing.md,
               ),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(top: BorderSide(color: AppColors.border)),
               ),
@@ -397,16 +397,16 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
       child: Container(
         color: Colors.white,
         margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: TabBar(
+        child: const TabBar(
           indicatorColor: AppColors.violet600,
           indicatorWeight: 2,
           labelColor: AppColors.violet600,
           unselectedLabelColor: AppColors.gray500,
           labelStyle:
-              const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
           unselectedLabelStyle:
-              const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
-          tabs: const [
+              TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+          tabs: [
             Tab(text: 'Sobre mí'),
             Tab(text: 'Servicios'),
             Tab(text: 'Reseñas'),

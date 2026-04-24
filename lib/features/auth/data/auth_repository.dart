@@ -18,12 +18,12 @@ class AuthRepository {
     required FirebaseAuth auth,
     required FirebaseFirestore firestore,
     GoogleSignIn? googleSignIn,
-  })  : _auth = auth,
-        _firestore = firestore,
-        // En web NO inicializamos GoogleSignIn (requiere clientId en un meta
-        // tag y además usamos signInWithPopup de Firebase Auth directamente).
-        // En mobile/desktop, sí lo usamos.
-        _googleSignIn = kIsWeb ? null : (googleSignIn ?? GoogleSignIn());
+  }) : _auth = auth,
+       _firestore = firestore,
+       // En web NO inicializamos GoogleSignIn (requiere clientId en un meta
+       // tag y además usamos signInWithPopup de Firebase Auth directamente).
+       // En mobile/desktop, sí lo usamos.
+       _googleSignIn = kIsWeb ? null : (googleSignIn ?? GoogleSignIn());
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
@@ -210,6 +210,9 @@ class AuthRepository {
   // ---------------------------------------------------------------------------
 
   Future<UserRole?> fetchRoleOf(String uid) async {
+    final token = await _auth.currentUser?.getIdTokenResult();
+    if (token?.claims?['role'] == 'admin') return UserRole.admin;
+
     final results = await Future.wait([
       _firestore.collection(FirestoreCollections.users).doc(uid).get(),
       _firestore.collection(FirestoreCollections.professionals).doc(uid).get(),
@@ -242,54 +245,57 @@ class AuthRepository {
     required UserRole role,
     required String authProvider,
   }) async {
-    if (role == UserRole.patient) {
-      final data = <String, dynamic>{
-        'uid': user.uid,
-        'full_name': fullName,
-        'email': user.email ?? '',
-        if (user.phoneNumber != null) 'phone': user.phoneNumber,
-        if (user.photoURL != null) 'photo_url': user.photoURL,
-        'auth_providers': [authProvider],
-        'verification_level': 'basic',
-        'is_active': true,
-        'email_verified': user.emailVerified,
-        'phone_verified': false,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-      await _firestore
-          .collection(FirestoreCollections.users)
-          .doc(user.uid)
-          .set(data);
-    } else {
-      final data = <String, dynamic>{
-        'uid': user.uid,
-        'full_name': fullName,
-        'email': user.email ?? '',
-        'phone': user.phoneNumber ?? '',
-        if (user.photoURL != null) 'photo_url': user.photoURL,
-        'validation_status': 'pending',
-        'rejection_count': 0,
-        'is_active': true,
-        'is_available': false,
-        'do_not_disturb': false,
-        'location': const GeoPoint(0, 0),
-        'coverage_type': 'radius',
-        'coverage_radius_km': 10.0,
-        'coverage_zones': <String>[],
-        'specialties': <String>[],
-        'rating_avg': 0.0,
-        'rating_count': 0,
-        'response_time_avg_min': 0,
-        'acceptance_rate': 0.0,
-        'completion_rate': 0.0,
-        'created_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      };
-      await _firestore
-          .collection(FirestoreCollections.professionals)
-          .doc(user.uid)
-          .set(data);
+    switch (role) {
+      case UserRole.patient:
+        final data = <String, dynamic>{
+          'uid': user.uid,
+          'full_name': fullName,
+          'email': user.email ?? '',
+          if (user.phoneNumber != null) 'phone': user.phoneNumber,
+          if (user.photoURL != null) 'photo_url': user.photoURL,
+          'auth_providers': [authProvider],
+          'verification_level': 'basic',
+          'is_active': true,
+          'email_verified': user.emailVerified,
+          'phone_verified': false,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        };
+        await _firestore
+            .collection(FirestoreCollections.users)
+            .doc(user.uid)
+            .set(data);
+      case UserRole.professional:
+        final data = <String, dynamic>{
+          'uid': user.uid,
+          'full_name': fullName,
+          'email': user.email ?? '',
+          'phone': user.phoneNumber ?? '',
+          if (user.photoURL != null) 'photo_url': user.photoURL,
+          'validation_status': 'pending',
+          'rejection_count': 0,
+          'is_active': true,
+          'is_available': false,
+          'do_not_disturb': false,
+          'location': const GeoPoint(0, 0),
+          'coverage_type': 'radius',
+          'coverage_radius_km': 10.0,
+          'coverage_zones': <String>[],
+          'specialties': <String>[],
+          'rating_avg': 0.0,
+          'rating_count': 0,
+          'response_time_avg_min': 0,
+          'acceptance_rate': 0.0,
+          'completion_rate': 0.0,
+          'created_at': FieldValue.serverTimestamp(),
+          'updated_at': FieldValue.serverTimestamp(),
+        };
+        await _firestore
+            .collection(FirestoreCollections.professionals)
+            .doc(user.uid)
+            .set(data);
+      case UserRole.admin:
+        throw const AuthFailure('Las cuentas admin se crean desde Firebase');
     }
   }
 
@@ -297,8 +303,8 @@ class AuthRepository {
   AuthFailure _mapAuthException(FirebaseAuthException e) {
     final message = switch (e.code) {
       'user-not-found' => 'No existe una cuenta con ese correo',
-      'wrong-password' || 'invalid-credential' =>
-        'Correo o contraseña incorrectos',
+      'wrong-password' ||
+      'invalid-credential' => 'Correo o contraseña incorrectos',
       'invalid-email' => 'El correo no es válido',
       'user-disabled' => 'Esta cuenta fue deshabilitada',
       'email-already-in-use' => 'Ya existe una cuenta con ese correo',
@@ -306,13 +312,11 @@ class AuthRepository {
       'operation-not-allowed' =>
         'Este método de autenticación no está habilitado',
       'network-request-failed' => 'Sin conexión a internet',
-      'too-many-requests' =>
-        'Demasiados intentos. Intenta de nuevo más tarde',
+      'too-many-requests' => 'Demasiados intentos. Intenta de nuevo más tarde',
       'account-exists-with-different-credential' =>
         'Ya existe una cuenta con ese correo usando otro método de inicio',
       'popup-closed-by-user' ||
-      'cancelled-popup-request' =>
-        'Cancelado por el usuario',
+      'cancelled-popup-request' => 'Cancelado por el usuario',
       _ => e.message ?? 'Error de autenticación',
     };
     return AuthFailure(message, e);

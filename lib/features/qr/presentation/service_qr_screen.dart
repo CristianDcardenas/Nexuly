@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/services/qr_payload.dart';
@@ -68,8 +67,11 @@ class ServiceQrScreen extends ConsumerWidget {
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.qr_code_2,
-                          color: Colors.white, size: 22),
+                      child: const Icon(
+                        Icons.qr_code_2,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.md),
                     const Expanded(
@@ -144,7 +146,8 @@ class ServiceQrScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               _InfoRow(
                 icon: Icons.tag,
-                label: 'ID: ${requestId.substring(0, requestId.length.clamp(0, 8))}',
+                label:
+                    'ID: ${requestId.substring(0, requestId.length.clamp(0, 8))}',
               ),
 
               const Spacer(),

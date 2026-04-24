@@ -20,11 +20,11 @@ Stream<List<Professional>> topProfessionals(Ref ref) {
       .watch(professionalsRepositoryProvider)
       .watchApproved(limit: 10)
       .map((list) {
-    // Ordenamos por rating desc del lado cliente para ahorrar un índice.
-    final sorted = [...list]
-      ..sort((a, b) => b.ratingAvg.compareTo(a.ratingAvg));
-    return sorted.take(5).toList();
-  });
+        // Ordenamos por rating desc del lado cliente para ahorrar un índice.
+        final sorted = [...list]
+          ..sort((a, b) => b.ratingAvg.compareTo(a.ratingAvg));
+        return sorted.take(5).toList();
+      });
 }
 
 class HomeScreen extends ConsumerWidget {
@@ -69,10 +69,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 child: const Text(
                   'Ver todos',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.violet600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.violet600),
                 ),
               ),
             ],
@@ -192,8 +189,11 @@ class _WelcomeCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.location_on_outlined,
-                    color: Colors.white, size: 20),
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
@@ -259,8 +259,11 @@ class _AIAssistantBar extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome,
-                    color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.auto_awesome,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               const Expanded(
@@ -273,10 +276,7 @@ class _AIAssistantBar extends StatelessWidget {
                     ),
                     Text(
                       'Encuentra el profesional ideal para ti',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                   ],
                 ),
@@ -304,7 +304,7 @@ class _ServiceCategoriesGrid extends StatelessWidget {
     _CategoryItem(
       icon: Icons.people_alt_outlined,
       label: 'Cuidado',
-      category: 'cuidado',
+      category: 'cuidado_adulto_mayor',
       bg: AppColors.violetServiceBg,
       fg: AppColors.violetServiceFg,
     ),
@@ -375,10 +375,7 @@ class _CategoryTile extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           Text(
             item.label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.gray700,
-            ),
+            style: const TextStyle(fontSize: 11, color: AppColors.gray700),
             textAlign: TextAlign.center,
           ),
         ],
@@ -417,10 +414,7 @@ class _QuickAction extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.gray700,
-                ),
+                style: const TextStyle(fontSize: 13, color: AppColors.gray700),
               ),
             ],
           ),
@@ -451,8 +445,11 @@ class _EmptyProfessionals extends StatelessWidget {
               color: AppColors.gray100,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.people_outline,
-                size: 28, color: AppColors.gray400),
+            child: const Icon(
+              Icons.people_outline,
+              size: 28,
+              color: AppColors.gray400,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
@@ -494,10 +491,7 @@ class _ErrorState extends StatelessWidget {
           Expanded(
             child: Text(
               'Error cargando profesionales: $error',
-              style: const TextStyle(
-                color: AppColors.dangerText,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.dangerText, fontSize: 13),
             ),
           ),
         ],

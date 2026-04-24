@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
@@ -84,10 +83,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
                         hintText: 'Buscar profesional...',
-                        prefixIcon: const Icon(Icons.search,
-                            color: AppColors.gray400, size: 20),
-                        prefixIconConstraints:
-                            const BoxConstraints(minWidth: 44),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppColors.gray400,
+                          size: 20,
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 44,
+                        ),
                         filled: true,
                         fillColor: AppColors.gray50,
                         contentPadding: const EdgeInsets.symmetric(
@@ -96,13 +99,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppRadii.md),
-                          borderSide:
-                              const BorderSide(color: AppColors.gray200),
+                          borderSide: const BorderSide(
+                            color: AppColors.gray200,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppRadii.md),
-                          borderSide:
-                              const BorderSide(color: AppColors.gray200),
+                          borderSide: const BorderSide(
+                            color: AppColors.gray200,
+                          ),
                         ),
                       ),
                     ),
@@ -201,8 +206,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ProfessionalCard(professional: filtered[i]),
               );
             },
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -230,13 +234,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // Solo verificados
       if (_onlyVerified && p.validationStatus != 'approved') return false;
       // Búsqueda por nombre (case-insensitive)
-      if (_query.isNotEmpty &&
-          !p.fullName.toLowerCase().contains(_query)) {
+      if (_query.isNotEmpty && !p.fullName.toLowerCase().contains(_query)) {
         return false;
       }
       return true;
-    }).toList()
-      ..sort((a, b) => b.ratingAvg.compareTo(a.ratingAvg));
+    }).toList()..sort((a, b) => b.ratingAvg.compareTo(a.ratingAvg));
   }
 }
 
@@ -244,10 +246,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 /// lo compartan Home y Search sin duplicar suscripciones.
 final _allApprovedProfessionalsProvider =
     StreamProvider.autoDispose<List<Professional>>((ref) {
-  return ref
-      .watch(professionalsRepositoryProvider)
-      .watchApproved(limit: 50);
-});
+      return ref
+          .watch(professionalsRepositoryProvider)
+          .watchSearchable(limit: 50);
+    });
 
 // ---------------------------------------------------------------------------
 
@@ -313,16 +315,13 @@ class _FilterRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.gray700,
-              ),
+              style: const TextStyle(fontSize: 13, color: AppColors.gray700),
             ),
           ),
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.violet600,
+            activeThumbColor: AppColors.violet600,
           ),
         ],
       ),
@@ -350,8 +349,11 @@ class _EmptyResults extends StatelessWidget {
                 color: AppColors.gray100,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.search_off,
-                  size: 32, color: AppColors.gray400),
+              child: const Icon(
+                Icons.search_off,
+                size: 32,
+                color: AppColors.gray400,
+              ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -370,10 +372,7 @@ class _EmptyResults extends StatelessWidget {
               hasQuery
                   ? 'Prueba con otros filtros o limpia la búsqueda'
                   : 'Pronto tendremos profesionales verificados en tu zona.',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.gray500,
-              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.gray500),
               textAlign: TextAlign.center,
             ),
             if (hasQuery) ...[

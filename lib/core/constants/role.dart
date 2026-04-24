@@ -4,15 +4,14 @@
 /// Firestore se creará el documento (`users` o `professionals`) al hacer signup.
 enum UserRole {
   patient('patient'),
-  professional('professional');
+  professional('professional'),
+  admin('admin');
 
   const UserRole(this.value);
   final String value;
 
-  static UserRole fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => UserRole.patient,
-      );
+  static UserRole fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => UserRole.patient);
 
   String get displayName {
     switch (this) {
@@ -20,6 +19,8 @@ enum UserRole {
         return 'Paciente';
       case UserRole.professional:
         return 'Profesional';
+      case UserRole.admin:
+        return 'Administrador';
     }
   }
 }

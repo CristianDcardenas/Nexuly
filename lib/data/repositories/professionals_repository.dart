@@ -38,6 +38,23 @@ class ProfessionalsRepository extends BaseFirestoreRepository<Professional> {
         .map(mapQuery);
   }
 
+  Stream<List<Professional>> watchSearchable({int limit = 50}) {
+    return collection
+        .where('validation_status', isEqualTo: 'approved')
+        .where('is_active', isEqualTo: true)
+        .limit(limit)
+        .snapshots()
+        .map(mapQuery);
+  }
+
+  Stream<List<Professional>> watchForAdmin({int limit = 100}) {
+    return collection
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(mapQuery);
+  }
+
   /// Búsqueda por especialidad (array-contains).
   /// Combinable con filtros por zona/rating del lado del cliente o con
   /// índices adicionales si se vuelve un patrón fijo.
@@ -67,12 +84,10 @@ class ProfessionalsRepository extends BaseFirestoreRepository<Professional> {
 
   Stream<List<ProfessionalDocument>> watchDocuments(String uid) {
     return _documentsCol(uid).snapshots().map(
-          (snap) => snap.docs
-              .map(
-                (d) => ProfessionalDocument.fromJson({...d.data(), 'id': d.id}),
-              )
-              .toList(),
-        );
+      (snap) => snap.docs
+          .map((d) => ProfessionalDocument.fromJson({...d.data(), 'id': d.id}))
+          .toList(),
+    );
   }
 
   // ---------- availability_blocks ----------
@@ -80,7 +95,10 @@ class ProfessionalsRepository extends BaseFirestoreRepository<Professional> {
   CollectionReference<Map<String, dynamic>> _availabilityCol(String uid) =>
       collection.doc(uid).collection(FirestoreCollections.availabilityBlocks);
 
-  Future<String> addAvailabilityBlock(String uid, AvailabilityBlock block) async {
+  Future<String> addAvailabilityBlock(
+    String uid,
+    AvailabilityBlock block,
+  ) async {
     final ref = await _availabilityCol(uid).add(block.toJson());
     return ref.id;
   }
@@ -91,9 +109,7 @@ class ProfessionalsRepository extends BaseFirestoreRepository<Professional> {
         .snapshots()
         .map(
           (snap) => snap.docs
-              .map(
-                (d) => AvailabilityBlock.fromJson({...d.data(), 'id': d.id}),
-              )
+              .map((d) => AvailabilityBlock.fromJson({...d.data(), 'id': d.id}))
               .toList(),
         );
   }

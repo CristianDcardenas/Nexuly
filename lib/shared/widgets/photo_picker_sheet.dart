@@ -164,7 +164,7 @@ class _OptionTile extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right,
+              const Icon(Icons.chevron_right,
                   color: AppColors.gray400, size: 20),
             ],
           ),

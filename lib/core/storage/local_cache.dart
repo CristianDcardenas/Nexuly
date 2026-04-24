@@ -50,20 +50,18 @@ class CachedEntry<T> {
   bool isFresherThan(Duration maxAge) =>
       DateTime.now().difference(savedAt) < maxAge;
 
-  Map<String, dynamic> toJson(Map<String, dynamic> Function(T) valueToJson) =>
-      {
-        'v': valueToJson(value),
-        't': savedAt.millisecondsSinceEpoch,
-      };
+  Map<String, dynamic> toJson(Map<String, dynamic> Function(T) valueToJson) => {
+    'v': valueToJson(value),
+    't': savedAt.millisecondsSinceEpoch,
+  };
 
   static CachedEntry<T> fromJson<T>(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) valueFromJson,
-  ) =>
-      CachedEntry<T>(
-        value: valueFromJson(json['v'] as Map<String, dynamic>),
-        savedAt: DateTime.fromMillisecondsSinceEpoch(json['t'] as int),
-      );
+  ) => CachedEntry<T>(
+    value: valueFromJson(json['v'] as Map<String, dynamic>),
+    savedAt: DateTime.fromMillisecondsSinceEpoch(json['t'] as int),
+  );
 }
 
 /// Servicio de cache local basado en Hive.
@@ -81,7 +79,7 @@ class CachedEntry<T> {
 /// ```
 class LocalCache {
   LocalCache(this._box);
-  final Box _box;
+  final Box<dynamic> _box;
 
   /// Guarda un valor JSON (Map o List) bajo una clave.
   Future<void> putJson(String key, Object? value) async {
@@ -112,10 +110,7 @@ class LocalCache {
     }
     await _box.put(
       key,
-      jsonEncode({
-        'v': value,
-        't': DateTime.now().millisecondsSinceEpoch,
-      }),
+      jsonEncode({'v': value, 't': DateTime.now().millisecondsSinceEpoch}),
     );
   }
 
@@ -126,8 +121,7 @@ class LocalCache {
     if (raw == null) return null;
     try {
       final decoded = jsonDecode(raw as String) as Map<String, dynamic>;
-      final savedAt =
-          DateTime.fromMillisecondsSinceEpoch(decoded['t'] as int);
+      final savedAt = DateTime.fromMillisecondsSinceEpoch(decoded['t'] as int);
       if (DateTime.now().difference(savedAt) > maxAge) return null;
       return decoded['v'] as T;
     } catch (e) {
@@ -150,9 +144,9 @@ class LocalCache {
 Future<void> initializeLocalStorage() async {
   await Hive.initFlutter();
   await Future.wait([
-    Hive.openBox(HiveBoxes.cache),
-    Hive.openBox(HiveBoxes.prefs),
-    Hive.openBox(HiveBoxes.outbox),
+    Hive.openBox<dynamic>(HiveBoxes.cache),
+    Hive.openBox<dynamic>(HiveBoxes.prefs),
+    Hive.openBox<dynamic>(HiveBoxes.outbox),
   ]);
 }
 
@@ -161,11 +155,11 @@ Future<void> initializeLocalStorage() async {
 /// Provider del cache principal (JSON genérico).
 @Riverpod(keepAlive: true)
 LocalCache localCache(Ref ref) {
-  return LocalCache(Hive.box(HiveBoxes.cache));
+  return LocalCache(Hive.box<dynamic>(HiveBoxes.cache));
 }
 
 /// Provider del cache de preferencias.
 @Riverpod(keepAlive: true)
 LocalCache preferencesCache(Ref ref) {
-  return LocalCache(Hive.box(HiveBoxes.prefs));
+  return LocalCache(Hive.box<dynamic>(HiveBoxes.prefs));
 }

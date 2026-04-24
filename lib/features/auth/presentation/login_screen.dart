@@ -115,8 +115,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             children: [
               // --- Header con logo ---
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.xxl),
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.xxl),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: NexulyLogo(size: 40, onDark: true),
@@ -142,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       _isSignUp
                           ? 'Regístrate para conectar con profesionales de salud'
                           : 'Inicia sesión para continuar',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.violet100,
                         fontSize: 15,
                       ),
@@ -171,7 +171,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           // --- Selector de rol ---
-                          Text(
+                          const Text(
                             'Tipo de cuenta',
                             style: TextStyle(
                               color: AppColors.gray700,
@@ -306,7 +306,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         ),
                                       ),
                                       const SizedBox(width: AppSpacing.sm),
-                                      Flexible(
+                                      const Flexible(
                                         child: Text(
                                           'Recordarme',
                                           style: TextStyle(
@@ -354,17 +354,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.sm),
-                                Expanded(
+                                const Expanded(
                                   child: Padding(
-                                    padding: const EdgeInsets.only(top: 3),
+                                    padding: EdgeInsets.only(top: 3),
                                     child: Text.rich(
                                       TextSpan(
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           color: AppColors.gray600,
                                         ),
                                         children: [
-                                          const TextSpan(text: 'Acepto los '),
+                                          TextSpan(text: 'Acepto los '),
                                           TextSpan(
                                             text: 'términos y condiciones',
                                             style: TextStyle(
@@ -373,7 +373,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                                   TextDecoration.underline,
                                             ),
                                           ),
-                                          const TextSpan(text: ' y la '),
+                                          TextSpan(text: ' y la '),
                                           TextSpan(
                                             text: 'política de privacidad',
                                             style: TextStyle(
@@ -402,11 +402,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: AppSpacing.xl),
 
                           // --- Divider "o continúa con" ---
-                          Row(
+                          const Row(
                             children: [
-                              const Expanded(child: Divider()),
+                              Expanded(child: Divider()),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
+                                padding: EdgeInsets.symmetric(
                                   horizontal: AppSpacing.md,
                                 ),
                                 child: Text(
@@ -417,7 +417,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              const Expanded(child: Divider()),
+                              Expanded(child: Divider()),
                             ],
                           ),
 
@@ -436,7 +436,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Center(
                             child: Text.rich(
                               TextSpan(
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: AppColors.gray600,
                                 ),
@@ -458,7 +458,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         _isSignUp
                                             ? 'Iniciar sesión'
                                             : 'Regístrate',
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           color: AppColors.violet600,
                                           fontWeight: FontWeight.w500,

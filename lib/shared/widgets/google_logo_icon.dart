@@ -22,8 +22,6 @@ class _GoogleLogoPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    final paths = <({String color, List<Offset> points})>[];
-
     // Versión simplificada: 4 arcos de colores Google en una circunferencia
     // con "G" minimalista. Es un buen compromiso entre fidelidad y código.
     final center = Offset(w / 2, h / 2);
@@ -32,7 +30,14 @@ class _GoogleLogoPainter extends CustomPainter {
     // Paths de la G oficial (con SVG path scaling)
     _drawArc(canvas, center, radius, 0, 90, const Color(0xFF4285F4)); // Azul
     _drawArc(canvas, center, radius, 90, 90, const Color(0xFF34A853)); // Verde
-    _drawArc(canvas, center, radius, 180, 90, const Color(0xFFFBBC05)); // Amarillo
+    _drawArc(
+      canvas,
+      center,
+      radius,
+      180,
+      90,
+      const Color(0xFFFBBC05),
+    ); // Amarillo
     _drawArc(canvas, center, radius, 270, 90, const Color(0xFFEA4335)); // Rojo
 
     // "Hueco" blanco interior para que parezca "G"
@@ -47,8 +52,14 @@ class _GoogleLogoPainter extends CustomPainter {
     );
   }
 
-  void _drawArc(Canvas canvas, Offset center, double radius,
-      double startDeg, double sweepDeg, Color color) {
+  void _drawArc(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    double startDeg,
+    double sweepDeg,
+    Color color,
+  ) {
     final paint = Paint()..color = color;
     const k = 3.14159265 / 180;
     canvas.drawArc(

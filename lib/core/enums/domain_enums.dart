@@ -1,8 +1,8 @@
-/// Enums del dominio Nexuly.
-///
-/// Cada enum expone `value` (el string que se guarda en Firestore) y
-/// un factory `fromValue` tolerante a nulos/valores desconocidos.
-/// Esto evita perder datos si Firestore trae un valor que aún no manejamos.
+// Enums del dominio Nexuly.
+//
+// Cada enum expone `value` (el string que se guarda en Firestore) y
+// un factory `fromValue` tolerante a nulos/valores desconocidos.
+// Esto evita perder datos si Firestore trae un valor que aún no manejamos.
 
 // ---------------------------------------------------------------------------
 // Usuarios
@@ -17,9 +17,9 @@ enum VerificationLevel {
   final String value;
 
   static VerificationLevel fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => VerificationLevel.basic,
-      );
+    (e) => e.value == v,
+    orElse: () => VerificationLevel.basic,
+  );
 }
 
 enum TrustLabel {
@@ -30,10 +30,8 @@ enum TrustLabel {
   const TrustLabel(this.value);
   final String value;
 
-  static TrustLabel fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => TrustLabel.standard,
-      );
+  static TrustLabel fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => TrustLabel.standard);
 }
 
 enum AuthProvider {
@@ -44,10 +42,8 @@ enum AuthProvider {
   const AuthProvider(this.value);
   final String value;
 
-  static AuthProvider fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => AuthProvider.email,
-      );
+  static AuthProvider fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => AuthProvider.email);
 }
 
 // ---------------------------------------------------------------------------
@@ -64,9 +60,9 @@ enum ValidationStatus {
   final String value;
 
   static ValidationStatus fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => ValidationStatus.pending,
-      );
+    (e) => e.value == v,
+    orElse: () => ValidationStatus.pending,
+  );
 }
 
 enum CoverageType {
@@ -76,10 +72,8 @@ enum CoverageType {
   const CoverageType(this.value);
   final String value;
 
-  static CoverageType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => CoverageType.radius,
-      );
+  static CoverageType fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => CoverageType.radius);
 }
 
 enum DocumentType {
@@ -90,10 +84,8 @@ enum DocumentType {
   const DocumentType(this.value);
   final String value;
 
-  static DocumentType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => DocumentType.idCard,
-      );
+  static DocumentType fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => DocumentType.idCard);
 }
 
 enum DocumentStatus {
@@ -105,9 +97,9 @@ enum DocumentStatus {
   final String value;
 
   static DocumentStatus fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => DocumentStatus.pending,
-      );
+    (e) => e.value == v,
+    orElse: () => DocumentStatus.pending,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -128,9 +120,9 @@ enum ServiceRequestStatus {
   final String value;
 
   static ServiceRequestStatus fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => ServiceRequestStatus.created,
-      );
+    (e) => e.value == v,
+    orElse: () => ServiceRequestStatus.created,
+  );
 
   /// Transiciones válidas desde este estado.
   /// Útil para validar en la UI antes de enviar un cambio.
@@ -148,10 +140,7 @@ enum ServiceRequestStatus {
           ServiceRequestStatus.cancelled,
         };
       case ServiceRequestStatus.pendingConfirmation:
-        return {
-          ServiceRequestStatus.confirmed,
-          ServiceRequestStatus.cancelled,
-        };
+        return {ServiceRequestStatus.confirmed, ServiceRequestStatus.cancelled};
       case ServiceRequestStatus.confirmed:
         return {
           ServiceRequestStatus.inProgress,
@@ -177,10 +166,8 @@ enum RequestType {
   const RequestType(this.value);
   final String value;
 
-  static RequestType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => RequestType.manual,
-      );
+  static RequestType fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => RequestType.manual);
 }
 
 enum ActorRole {
@@ -191,10 +178,8 @@ enum ActorRole {
   const ActorRole(this.value);
   final String value;
 
-  static ActorRole fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => ActorRole.system,
-      );
+  static ActorRole fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => ActorRole.system);
 }
 
 // ---------------------------------------------------------------------------
@@ -213,9 +198,9 @@ enum NotificationType {
   final String value;
 
   static NotificationType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => NotificationType.statusChange,
-      );
+    (e) => e.value == v,
+    orElse: () => NotificationType.statusChange,
+  );
 }
 
 enum NotificationChannel {
@@ -227,9 +212,9 @@ enum NotificationChannel {
   final String value;
 
   static NotificationChannel fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => NotificationChannel.push,
-      );
+    (e) => e.value == v,
+    orElse: () => NotificationChannel.push,
+  );
 }
 
 enum RecipientRole {
@@ -240,10 +225,8 @@ enum RecipientRole {
   const RecipientRole(this.value);
   final String value;
 
-  static RecipientRole fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => RecipientRole.user,
-      );
+  static RecipientRole fromValue(String? v) =>
+      values.firstWhere((e) => e.value == v, orElse: () => RecipientRole.user);
 }
 
 // ---------------------------------------------------------------------------
@@ -260,9 +243,9 @@ enum AdminActionType {
   final String value;
 
   static AdminActionType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => AdminActionType.resolveIncident,
-      );
+    (e) => e.value == v,
+    orElse: () => AdminActionType.resolveIncident,
+  );
 }
 
 enum AdminTargetType {
@@ -274,9 +257,9 @@ enum AdminTargetType {
   final String value;
 
   static AdminTargetType fromValue(String? v) => values.firstWhere(
-        (e) => e.value == v,
-        orElse: () => AdminTargetType.user,
-      );
+    (e) => e.value == v,
+    orElse: () => AdminTargetType.user,
+  );
 }
 
 // ---------------------------------------------------------------------------

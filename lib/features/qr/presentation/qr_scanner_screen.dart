@@ -306,13 +306,13 @@ class _WebFallback extends StatelessWidget {
       color: AppColors.gray900,
       alignment: Alignment.center,
       padding: const EdgeInsets.all(AppSpacing.xxl),
-      child: Column(
+      child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.qr_code_scanner,
+          Icon(Icons.qr_code_scanner,
               color: Colors.white38, size: 72),
-          const SizedBox(height: AppSpacing.lg),
-          const Text(
+          SizedBox(height: AppSpacing.lg),
+          Text(
             'El escáner QR funciona en Android/iOS',
             style: TextStyle(
               color: Colors.white,
@@ -321,8 +321,8 @@ class _WebFallback extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
+          SizedBox(height: AppSpacing.sm),
+          Text(
             'En esta versión web no podemos acceder a la cámara del dispositivo de forma estable.',
             style: TextStyle(color: Colors.white54, fontSize: 12),
             textAlign: TextAlign.center,

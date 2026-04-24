@@ -786,9 +786,9 @@ class _StatusInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.lg),
         border: Border.all(color: AppColors.violet200),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Icon(Icons.access_time_rounded,
               size: 20, color: AppColors.violet600),
           SizedBox(width: AppSpacing.md),
@@ -971,9 +971,9 @@ class _RejectionModal extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadii.md),
                     border: Border.all(color: AppColors.violet200),
                   ),
-                  child: Column(
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         '¿Qué te gustaría hacer?',
                         style: TextStyle(

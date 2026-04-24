@@ -262,7 +262,7 @@ class _ActiveServiceScreenState extends ConsumerState<ActiveServiceScreen>
                 const SizedBox(height: AppSpacing.lg),
                 _TimelineCard(currentStage: _stage),
                 const SizedBox(height: AppSpacing.lg),
-                _SafetyCard(),
+                const _SafetyCard(),
                 if (_stage == 3) ...[
                   const SizedBox(height: AppSpacing.lg),
                   SizedBox(
@@ -914,9 +914,9 @@ class _SafetyCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.lg),
         border: Border.all(color: AppColors.infoBg),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             'Tu seguridad es importante',
             style: TextStyle(
