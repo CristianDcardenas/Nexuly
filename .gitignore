@@ -60,3 +60,6 @@ service-account.json
 *.log
 
 seed/service-account.json.json
+
+mockup/
+docs/
