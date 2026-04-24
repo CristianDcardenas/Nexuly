@@ -23,6 +23,10 @@ abstract class Review with _$Review {
     String? comment, // visible sólo si author = user
     required bool isPublic,
 
+    /// Nombre denormalizado del autor (primer nombre + inicial del apellido).
+    /// Se copia al momento de crear la review para mostrarlo sin joins.
+    String? authorName,
+
     // Campos del flujo profesional → usuario (checkboxes de evaluación interna)
     bool? punctualityOk,
     bool? respectfulOk,

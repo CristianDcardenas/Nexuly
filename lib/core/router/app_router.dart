@@ -8,15 +8,18 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
+import '../../features/home/presentation/home_screen.dart';
+import '../../features/professional_detail/presentation/professional_detail_screen.dart';
+import '../../features/search/presentation/search_screen.dart';
 import '../../features/shell/patient_placeholders.dart';
 import '../../features/shell/patient_shell.dart';
 import '../../features/shell/professional_placeholders.dart';
 import '../../features/shell/professional_shell.dart';
+import '../../features/user_profile/presentation/user_profile_screen.dart';
 import '../constants/role.dart';
 
 part 'app_router.g.dart';
 
-/// Convierte el stream de autenticación en un Listenable para go_router.
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
@@ -41,37 +44,35 @@ GoRouter appRouter(Ref ref) {
     initialLocation: '/login',
     debugLogDiagnostics: true,
     refreshListenable: _GoRouterRefreshStream(authRepo.authStateChanges),
-
-    /// Redirects:
-    /// - Sin sesión + ruta protegida → /login
-    /// - Con sesión + /login o /forgot-password → redirigir según rol
-    /// - Si hay sesión pero el documento de Firestore aún no existe, mandamos
-    ///   al usuario a /login (esto no debería pasar tras signup, pero es un fallback).
     redirect: (context, state) async {
       final loc = state.matchedLocation;
       final isLoggedIn = authRepo.currentUser != null;
       final isAuthRoute = loc == '/login' || loc == '/forgot-password';
 
-      // Sin sesión → forzar login.
       if (!isLoggedIn) {
         return isAuthRoute ? null : '/login';
       }
 
-      // Con sesión en una ruta de auth → mandar al home según rol.
       if (isAuthRoute) {
         final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
         if (role == UserRole.professional) return '/pro/home';
         return '/home';
       }
 
-      // Con sesión en una ruta de paciente que debería ser profesional o viceversa.
-      // Esto evita que un profesional vea el home de paciente por accidente.
-      final isPatientRoute = loc.startsWith('/home') ||
-          loc.startsWith('/search') ||
-          loc.startsWith('/bookings') ||
-          loc.startsWith('/history') ||
-          loc.startsWith('/profile');
-      final isProRoute = loc.startsWith('/pro');
+      final isPatientRoute = loc == '/home' ||
+          loc.startsWith('/home/') ||
+          loc == '/search' ||
+          loc.startsWith('/search/') ||
+          loc == '/bookings' ||
+          loc.startsWith('/bookings/') ||
+          loc == '/history' ||
+          loc.startsWith('/history/') ||
+          loc == '/profile' ||
+          loc.startsWith('/profile/') ||
+          loc.startsWith('/professional/');
+      // IMPORTANTE: usamos `/pro/` con slash para no capturar `/professional/:id`
+      // (esa ruta es de detalle accesible para pacientes).
+      final isProRoute = loc == '/pro' || loc.startsWith('/pro/');
 
       if (isPatientRoute || isProRoute) {
         final role = await authRepo.fetchRoleOf(authRepo.currentUser!.uid);
@@ -83,7 +84,7 @@ GoRouter appRouter(Ref ref) {
     },
 
     routes: [
-      // --- Rutas públicas de auth ---
+      // --- Auth pública ---
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),
@@ -93,6 +94,14 @@ GoRouter appRouter(Ref ref) {
         builder: (_, __) => const ForgotPasswordScreen(),
       ),
 
+      // --- Detalle de profesional (fullscreen, fuera del shell) ---
+      GoRoute(
+        path: '/professional/:id',
+        builder: (context, state) => ProfessionalDetailScreen(
+          professionalId: state.pathParameters['id']!,
+        ),
+      ),
+
       // --- Zona PACIENTE (con bottom nav) ---
       ShellRoute(
         builder: (context, state, child) => PatientShell(child: child),
@@ -100,12 +109,16 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/home',
             pageBuilder: (_, __) =>
-                const NoTransitionPage(child: PatientHomePlaceholder()),
+                const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/search',
-            pageBuilder: (_, __) =>
-                const NoTransitionPage(child: PatientSearchPlaceholder()),
+            pageBuilder: (_, state) {
+              final category = state.uri.queryParameters['category'];
+              return NoTransitionPage(
+                child: SearchScreen(initialCategory: category),
+              );
+            },
           ),
           GoRoute(
             path: '/bookings',
@@ -120,7 +133,7 @@ GoRouter appRouter(Ref ref) {
           GoRoute(
             path: '/profile',
             pageBuilder: (_, __) =>
-                const NoTransitionPage(child: PatientProfilePlaceholder()),
+                const NoTransitionPage(child: UserProfileScreen()),
           ),
         ],
       ),

@@ -6,8 +6,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../../core/constants/firestore_collections.dart';
 import '../../../core/constants/role.dart';
 import '../../../core/errors/failures.dart';
-import '../../../data/models/app_user.dart';
-import '../../../data/models/professional.dart';
 
 /// Repositorio de autenticación.
 ///
@@ -70,17 +68,34 @@ class AuthRepository {
       await user.updateDisplayName(fullName.trim());
 
       // Creamos el documento en Firestore según el rol elegido.
-      await _createUserDocument(
-        user: user,
-        fullName: fullName.trim(),
-        role: role,
-        authProvider: 'email',
-      );
+      try {
+        await _createUserDocument(
+          user: user,
+          fullName: fullName.trim(),
+          role: role,
+          authProvider: 'email',
+        );
+      } catch (docError) {
+        // Si la creación del documento falla, mostramos un error más claro
+        // y no dejamos al usuario en un estado "huérfano" (auth sin doc).
+        debugPrint(
+          '⚠️ Error creando documento Firestore tras signUp: $docError',
+        );
+        rethrow;
+      }
 
       return user;
     } on FirebaseAuthException catch (e) {
       throw _mapAuthException(e);
+    } on FirebaseException catch (e) {
+      // Error escribiendo en Firestore (rules denegadas, etc).
+      throw AuthFailure(
+        'Cuenta creada pero no se pudo guardar tu perfil: ${e.code}. '
+        'Intenta cerrar sesión y volver a iniciar.',
+        e,
+      );
     } catch (e) {
+      if (e is NexulyFailure) rethrow;
       throw AuthFailure('Error al registrarse', e);
     }
   }
@@ -114,21 +129,16 @@ class AuthRepository {
   // Google Sign-In
   // ---------------------------------------------------------------------------
 
-  /// Inicia sesión con Google. Si es la primera vez, crea el documento en
-  /// Firestore con el rol indicado. Si el usuario ya existía, respeta su
-  /// documento actual (no lo pisa).
   Future<User> signInWithGoogle({required UserRole role}) async {
     try {
       final UserCredential cred;
 
       if (kIsWeb) {
-        // En web, Firebase Auth maneja Google Sign-In vía popup/redirect.
         final provider = GoogleAuthProvider()
           ..addScope('email')
           ..addScope('profile');
         cred = await _auth.signInWithPopup(provider);
       } else {
-        // En mobile/desktop, usamos el SDK de google_sign_in.
         final googleUser = await _googleSignIn!.signIn();
         if (googleUser == null) {
           throw const AuthFailure('Cancelado por el usuario');
@@ -186,7 +196,6 @@ class AuthRepository {
 
   Future<void> signOut() async {
     try {
-      // Cerrar sesión en ambos lados para evitar "sticky" sessions.
       await Future.wait([
         _auth.signOut(),
         if (_googleSignIn != null) _googleSignIn.signOut(),
@@ -200,12 +209,7 @@ class AuthRepository {
   // Verificación del rol actual (lee Firestore)
   // ---------------------------------------------------------------------------
 
-  /// Determina el rol del usuario autenticado leyendo los documentos en
-  /// Firestore. Útil para el router al iniciar la app.
-  ///
-  /// Devuelve `null` si no existe en ninguna de las dos colecciones.
   Future<UserRole?> fetchRoleOf(String uid) async {
-    // Leemos ambos en paralelo.
     final results = await Future.wait([
       _firestore.collection(FirestoreCollections.users).doc(uid).get(),
       _firestore.collection(FirestoreCollections.professionals).doc(uid).get(),
@@ -221,51 +225,71 @@ class AuthRepository {
   // ---------------------------------------------------------------------------
 
   /// Crea el documento en `users` o `professionals` según el rol.
-  /// Idempotente: usa `set` con merge para no duplicar si se llama dos veces.
+  ///
+  /// IMPORTANTE: Usamos `FieldValue.serverTimestamp()` en `created_at` y
+  /// `updated_at` porque las Security Rules exigen:
+  ///   `request.resource.data.created_at == request.time`
+  /// Es decir, el timestamp DEBE ser el del servidor. Si usáramos
+  /// `DateTime.now()` del cliente, la rule siempre fallaría porque
+  /// los dos tiempos nunca coinciden exactamente.
+  ///
+  /// También construimos el Map a mano en vez de usar `model.toJson()`
+  /// para poder mezclar campos regulares con `FieldValue` (el `toJson`
+  /// de Freezed devuelve un Map que no permite sentinels).
   Future<void> _createUserDocument({
     required User user,
     required String fullName,
     required UserRole role,
     required String authProvider,
   }) async {
-    final now = DateTime.now();
-
     if (role == UserRole.patient) {
-      final appUser = AppUser(
-        uid: user.uid,
-        fullName: fullName,
-        email: user.email ?? '',
-        phone: user.phoneNumber,
-        photoUrl: user.photoURL,
-        authProviders: [authProvider],
-        verificationLevel: 'basic',
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      );
+      final data = <String, dynamic>{
+        'uid': user.uid,
+        'full_name': fullName,
+        'email': user.email ?? '',
+        if (user.phoneNumber != null) 'phone': user.phoneNumber,
+        if (user.photoURL != null) 'photo_url': user.photoURL,
+        'auth_providers': [authProvider],
+        'verification_level': 'basic',
+        'is_active': true,
+        'email_verified': user.emailVerified,
+        'phone_verified': false,
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      };
       await _firestore
           .collection(FirestoreCollections.users)
           .doc(user.uid)
-          .set(appUser.toJson(), SetOptions(merge: true));
+          .set(data);
     } else {
-      final professional = Professional(
-        uid: user.uid,
-        fullName: fullName,
-        email: user.email ?? '',
-        phone: user.phoneNumber ?? '',
-        photoUrl: user.photoURL,
-        validationStatus: 'pending',
-        isActive: true,
-        isAvailable: false,
-        // Ubicación por defecto (0,0). El profesional la define en onboarding.
-        location: const GeoPoint(0, 0),
-        createdAt: now,
-        updatedAt: now,
-      );
+      final data = <String, dynamic>{
+        'uid': user.uid,
+        'full_name': fullName,
+        'email': user.email ?? '',
+        'phone': user.phoneNumber ?? '',
+        if (user.photoURL != null) 'photo_url': user.photoURL,
+        'validation_status': 'pending',
+        'rejection_count': 0,
+        'is_active': true,
+        'is_available': false,
+        'do_not_disturb': false,
+        'location': const GeoPoint(0, 0),
+        'coverage_type': 'radius',
+        'coverage_radius_km': 10.0,
+        'coverage_zones': <String>[],
+        'specialties': <String>[],
+        'rating_avg': 0.0,
+        'rating_count': 0,
+        'response_time_avg_min': 0,
+        'acceptance_rate': 0.0,
+        'completion_rate': 0.0,
+        'created_at': FieldValue.serverTimestamp(),
+        'updated_at': FieldValue.serverTimestamp(),
+      };
       await _firestore
           .collection(FirestoreCollections.professionals)
           .doc(user.uid)
-          .set(professional.toJson(), SetOptions(merge: true));
+          .set(data);
     }
   }
 

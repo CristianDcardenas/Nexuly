@@ -291,40 +291,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: Checkbox(
-                                        value: _rememberMe,
-                                        onChanged: (v) => setState(
-                                          () => _rememberMe = v ?? false,
+                                Flexible(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: Checkbox(
+                                          value: _rememberMe,
+                                          onChanged: (v) => setState(
+                                            () => _rememberMe = v ?? false,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.sm),
-                                    Text(
-                                      'Recordarme',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.gray600,
+                                      const SizedBox(width: AppSpacing.sm),
+                                      Flexible(
+                                        child: Text(
+                                          'Recordarme',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.gray600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                TextButton(
-                                  onPressed: () =>
-                                      context.go('/forgot-password'),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
+                                    ],
                                   ),
-                                  child: const Text(
-                                    '¿Olvidaste tu contraseña?',
-                                    style: TextStyle(fontSize: 13),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Flexible(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        context.go('/forgot-password'),
+                                    style: TextButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      minimumSize: Size.zero,
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: const Text(
+                                      '¿Olvidaste tu contraseña?',
+                                      style: TextStyle(fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 ),
                               ],

@@ -1,0 +1,13 @@
+{
+  "name": "nexuly-seed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node seed.js",
+    "seed:clean": "node seed.js --clean"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

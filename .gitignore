@@ -54,3 +54,9 @@ pubspec.lock
 # Logs y archivos de rastreo
 *.log
 custom_lint.log
+
+node_modules/
+service-account.json
+*.log
+
+seed/service-account.json.json
