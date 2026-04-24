@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../features/active_service/presentation/active_service_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/providers/auth_providers.dart';
@@ -12,6 +13,9 @@ import '../../features/booking/presentation/booking_confirmation_screen.dart';
 import '../../features/booking/presentation/booking_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/professional_detail/presentation/professional_detail_screen.dart';
+import '../../features/qr/presentation/qr_scan_result_screen.dart';
+import '../../features/qr/presentation/qr_scanner_screen.dart';
+import '../../features/qr/presentation/service_qr_screen.dart';
 import '../../features/search/presentation/search_screen.dart';
 import '../../features/shell/patient_placeholders.dart';
 import '../../features/shell/patient_shell.dart';
@@ -19,6 +23,7 @@ import '../../features/shell/professional_placeholders.dart';
 import '../../features/shell/professional_shell.dart';
 import '../../features/user_profile/presentation/user_profile_screen.dart';
 import '../constants/role.dart';
+import '../services/qr_payload.dart';
 
 part 'app_router.g.dart';
 
@@ -72,9 +77,9 @@ GoRouter appRouter(Ref ref) {
           loc == '/profile' ||
           loc.startsWith('/profile/') ||
           loc.startsWith('/professional/') ||
-          loc.startsWith('/booking/');
-      // IMPORTANTE: usamos `/pro/` con slash para no capturar `/professional/:id`
-      // (esa ruta es de detalle accesible para pacientes).
+          loc.startsWith('/booking/') ||
+          loc.startsWith('/active/') ||
+          loc.startsWith('/qr/');
       final isProRoute = loc == '/pro' || loc.startsWith('/pro/');
 
       if (isPatientRoute || isProRoute) {
@@ -97,7 +102,7 @@ GoRouter appRouter(Ref ref) {
         builder: (_, __) => const ForgotPasswordScreen(),
       ),
 
-      // --- Detalle de profesional (fullscreen, fuera del shell) ---
+      // --- Detalle de profesional (fullscreen) ---
       GoRoute(
         path: '/professional/:id',
         builder: (context, state) => ProfessionalDetailScreen(
@@ -105,7 +110,7 @@ GoRouter appRouter(Ref ref) {
         ),
       ),
 
-      // --- Flujo de reserva (fullscreen, fuera del shell) ---
+      // --- Flujo de reserva (fullscreen) ---
       GoRoute(
         path: '/booking/:id',
         builder: (context, state) => BookingScreen(
@@ -117,6 +122,52 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => BookingConfirmationScreen(
           requestId: state.pathParameters['id']!,
         ),
+      ),
+
+      // --- Servicio activo (fullscreen) ---
+      GoRoute(
+        path: '/active/:id',
+        builder: (context, state) => ActiveServiceScreen(
+          requestId: state.pathParameters['id']!,
+        ),
+      ),
+
+      // --- QR: generar código de check-in (paciente) ---
+      GoRoute(
+        path: '/qr/service/:id',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return ServiceQrScreen(
+            requestId: state.pathParameters['id']!,
+            patientUid: extra?['patientUid'] as String? ?? '',
+            serviceId: extra?['serviceId'] as String? ?? '',
+            patientName: extra?['patientName'] as String? ?? 'Paciente',
+            serviceName: extra?['serviceName'] as String? ?? 'Servicio',
+          );
+        },
+      ),
+
+      // --- QR: escáner (profesional) ---
+      GoRoute(
+        path: '/qr/scan',
+        builder: (context, state) => const QrScannerScreen(
+          expectedType: NexulyQrType.serviceCheckIn,
+          title: 'Check-in del servicio',
+        ),
+      ),
+
+      // --- QR: resultado ---
+      GoRoute(
+        path: '/qr/result',
+        builder: (context, state) {
+          final payload = state.extra as NexulyQrPayload?;
+          if (payload == null) {
+            return const Scaffold(
+              body: Center(child: Text('QR inválido')),
+            );
+          }
+          return QrScanResultScreen(payload: payload);
+        },
       ),
 
       // --- Zona PACIENTE (con bottom nav) ---

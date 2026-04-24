@@ -4,19 +4,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
+import 'core/storage/local_cache.dart';
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // --- Firebase ---
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // NOTA: App Check se reactivará en una sesión futura cuando tengas la
-  // site key de reCAPTCHA v3 configurada. Las Firestore Security Rules ya
-  // están desplegadas y son la protección principal.
+  // --- Almacenamiento local (Hive) ---
+  // Reto 1: persistencia offline. Se inicializa antes de runApp porque
+  // algunos providers leen el cache en su build() inicial.
+  await initializeLocalStorage();
+
+  // NOTA: App Check sigue desactivado — reactivar cerca del deploy.
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);

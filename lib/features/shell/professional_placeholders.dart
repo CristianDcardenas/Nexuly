@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_tokens.dart';
 import '../auth/providers/auth_providers.dart';
 
+/// Home del profesional. R1: añadimos botón "Escanear QR" para el flujo de
+/// check-in en domicilio.
 class ProfessionalHomePlaceholder extends ConsumerWidget {
   const ProfessionalHomePlaceholder({super.key});
 
@@ -15,6 +18,7 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // --- Welcome card ---
           Container(
             padding: const EdgeInsets.all(AppSpacing.xxl),
             decoration: BoxDecoration(
@@ -37,7 +41,7 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Tu cuenta está en revisión',
+                        'Gestiona tus servicios del día',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -59,7 +63,58 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
               ],
             ),
           ),
+
           const SizedBox(height: AppSpacing.lg),
+
+          // --- Quick Actions ---
+          const Text(
+            'Acciones rápidas',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.gray900,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+
+          // --- Fila con 2 quick actions ---
+          Row(
+            children: [
+              Expanded(
+                child: _QuickActionCard(
+                  icon: Icons.qr_code_scanner,
+                  label: 'Escanear QR',
+                  subtitle: 'Check-in al llegar',
+                  iconBg: AppColors.violet100,
+                  iconColor: AppColors.violet600,
+                  onTap: () async {
+                    final result = await context.push<dynamic>('/qr/scan');
+                    // El scanner devuelve QrScanResult via Navigator.pop.
+                    if (result != null && context.mounted) {
+                      // Pasamos el payload al screen de resultado.
+                      final payloadDynamic = (result as dynamic).payload;
+                      context.push('/qr/result', extra: payloadDynamic);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _QuickActionCard(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Hoy',
+                  subtitle: 'Ver servicios',
+                  iconBg: AppColors.infoBg,
+                  iconColor: AppColors.info,
+                  onTap: () => context.go('/pro/requests'),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.lg),
+
+          // --- Perfil en revisión ---
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
@@ -67,14 +122,14 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
               borderRadius: BorderRadius.circular(AppRadii.md),
               border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
             ),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Icon(Icons.hourglass_empty,
                         color: AppColors.warningText, size: 18),
-                    const SizedBox(width: AppSpacing.sm),
+                    SizedBox(width: AppSpacing.sm),
                     Text(
                       'Perfil en revisión',
                       style: TextStyle(
@@ -84,17 +139,18 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
+                SizedBox(height: AppSpacing.sm),
+                Text(
                   'Tu registro se envió correctamente. Un administrador '
-                  'revisará tus documentos en las próximas 24–48 horas. '
-                  'Te notificaremos cuando esté aprobado.',
+                  'revisará tus documentos en las próximas 24–48 horas.',
                   style: TextStyle(fontSize: 13, color: AppColors.gray700),
                 ),
               ],
             ),
           ),
+
           const SizedBox(height: AppSpacing.lg),
+
           OutlinedButton.icon(
             onPressed: () async {
               await ref.read(authControllerProvider.notifier).signOut();
@@ -111,6 +167,74 @@ class ProfessionalHomePlaceholder extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  const _QuickActionCard({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.iconBg,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color iconBg;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(AppRadii.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadii.md),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.gray900,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.gray500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -201,7 +325,7 @@ class _SimplePlaceholder extends StatelessWidget {
                 color: AppColors.gray900,
               )),
           const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(color: AppColors.gray500, fontSize: 13)),
+          Text(subtitle, style: const TextStyle(color: AppColors.gray500, fontSize: 13)),
         ],
       ),
     );
