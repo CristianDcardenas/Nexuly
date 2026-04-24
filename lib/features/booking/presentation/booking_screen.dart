@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/providers/firebase_providers.dart';
+import '../../../core/services/location_service.dart';
+import '../../../core/storage/local_cache.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/professional.dart';
@@ -18,15 +20,16 @@ import '../../../shared/widgets/user_avatar.dart';
 // Feature-local providers
 // ---------------------------------------------------------------------------
 
-final _bookingProProvider =
-    StreamProvider.autoDispose.family<Professional?, String>(
-  (ref, id) => ref.watch(professionalsRepositoryProvider).watchById(id),
-);
+final _bookingProProvider = StreamProvider.autoDispose
+    .family<Professional?, String>(
+      (ref, id) => ref.watch(professionalsRepositoryProvider).watchById(id),
+    );
 
-final _bookingSvcProvider =
-    StreamProvider.autoDispose.family<List<Service>, String>(
-  (ref, id) => ref.watch(servicesRepositoryProvider).watchByProfessional(id),
-);
+final _bookingSvcProvider = StreamProvider.autoDispose
+    .family<List<Service>, String>(
+      (ref, id) =>
+          ref.watch(servicesRepositoryProvider).watchByProfessional(id),
+    );
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -48,17 +51,37 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final Set<String> _selectedServiceIds = {};
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
+  LocationResult? _selectedLocation;
   bool _isSubmitting = false;
+  bool _isLocating = false;
 
   static const _timeSlots = [
-    '08:00 AM', '09:00 AM', '10:00 AM', '11:00 AM',
-    '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
-    '04:00 PM', '05:00 PM', '06:00 PM',
+    '08:00 AM',
+    '09:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '12:00 PM',
+    '01:00 PM',
+    '02:00 PM',
+    '03:00 PM',
+    '04:00 PM',
+    '05:00 PM',
+    '06:00 PM',
   ];
 
   static const _monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    'Enero',
+    'Febrero',
+    'Marzo',
+    'Abril',
+    'Mayo',
+    'Junio',
+    'Julio',
+    'Agosto',
+    'Septiembre',
+    'Octubre',
+    'Noviembre',
+    'Diciembre',
   ];
 
   @override
@@ -135,10 +158,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ? _selectedServiceIds.first
           : (services.isNotEmpty ? services.first.id : 'general');
 
-      final selectedServices =
-          services.where((s) => _selectedServiceIds.contains(s.id)).toList();
-      final totalPrice =
-          selectedServices.fold(0.0, (acc, s) => acc + s.price);
+      final selectedServices = services
+          .where((s) => _selectedServiceIds.contains(s.id))
+          .toList();
+      final totalPrice = selectedServices.fold(0.0, (acc, s) => acc + s.price);
 
       // Build description: notes + extra service names
       final extras = selectedServices
@@ -160,7 +183,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         status: 'CREATED',
         requestType: 'manual',
         requestedDate: requestedDate,
-        location: const GeoPoint(0, 0),
+        location: _selectedLocation == null
+            ? const GeoPoint(0, 0)
+            : GeoPoint(
+                _selectedLocation!.latitude,
+                _selectedLocation!.longitude,
+              ),
         locationAddress: _addressController.text.trim(),
         userNeedDescription: parts.isNotEmpty ? parts.join('\n') : null,
         priceQuoted: totalPrice > 0 ? totalPrice : null,
@@ -169,8 +197,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         updatedAt: now,
       );
 
-      final requestId =
-          await ref.read(serviceRequestsRepositoryProvider).add(request);
+      final requestId = await ref
+          .read(serviceRequestsRepositoryProvider)
+          .add(request);
 
       if (mounted) {
         context.pushReplacement('/booking-confirmation/$requestId');
@@ -224,6 +253,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             selectedServiceIds: _selectedServiceIds,
             addressController: _addressController,
             notesController: _notesController,
+            selectedLocation: _selectedLocation,
+            isLocating: _isLocating,
             isSubmitting: _isSubmitting,
             canConfirm: _canConfirm,
             monthNames: _monthNames,
@@ -231,29 +262,76 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             buildDays: _buildCalendarDays,
             isAvailable: _isAvailable,
             isSelected: _isSelected,
-            onPrevMonth: () => setState(() => _currentMonth =
-                DateTime(_currentMonth.year, _currentMonth.month - 1)),
-            onNextMonth: () => setState(() => _currentMonth =
-                DateTime(_currentMonth.year, _currentMonth.month + 1)),
-            onDateSelected: (d) =>
-                setState(() { _selectedDate = d; _selectedTime = null; }),
+            onPrevMonth: () => setState(
+              () => _currentMonth = DateTime(
+                _currentMonth.year,
+                _currentMonth.month - 1,
+              ),
+            ),
+            onNextMonth: () => setState(
+              () => _currentMonth = DateTime(
+                _currentMonth.year,
+                _currentMonth.month + 1,
+              ),
+            ),
+            onDateSelected: (d) => setState(() {
+              _selectedDate = d;
+              _selectedTime = null;
+            }),
             onTimeSelected: (t) => setState(() => _selectedTime = t),
             onServiceToggle: (id) => setState(() {
               _selectedServiceIds.contains(id)
                   ? _selectedServiceIds.remove(id)
                   : _selectedServiceIds.add(id);
             }),
+            onUseCurrentLocation: _useCurrentLocation,
             onConfirm: () => _confirm(services),
           );
         },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(
-          child: Text('Error: $e',
-              style: const TextStyle(color: AppColors.dangerText)),
+          child: Text(
+            'Error: $e',
+            style: const TextStyle(color: AppColors.dangerText),
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _useCurrentLocation() async {
+    if (_isLocating) return;
+    setState(() => _isLocating = true);
+    try {
+      final location = await ref.read(locationServiceProvider).requestCurrent();
+      await ref.read(localCacheProvider).putJson(CacheKeys.lastLocation, {
+        'latitude': location.latitude,
+        'longitude': location.longitude,
+        'accuracy_meters': location.accuracyMeters,
+        'cached': location.cached,
+        'saved_at': DateTime.now().toIso8601String(),
+      });
+      if (!mounted) return;
+      setState(() {
+        _selectedLocation = location;
+        if (_addressController.text.trim().isEmpty) {
+          _addressController.text =
+              'Ubicacion actual (${location.latitude.toStringAsFixed(5)}, ${location.longitude.toStringAsFixed(5)})';
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ubicacion actual agregada a la reserva.'),
+        ),
+      );
+    } on LocationFailure catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
+    } finally {
+      if (mounted) setState(() => _isLocating = false);
+    }
   }
 }
 
@@ -271,6 +349,8 @@ class _Body extends StatelessWidget {
     required this.selectedServiceIds,
     required this.addressController,
     required this.notesController,
+    required this.selectedLocation,
+    required this.isLocating,
     required this.isSubmitting,
     required this.canConfirm,
     required this.monthNames,
@@ -283,6 +363,7 @@ class _Body extends StatelessWidget {
     required this.onDateSelected,
     required this.onTimeSelected,
     required this.onServiceToggle,
+    required this.onUseCurrentLocation,
     required this.onConfirm,
   });
 
@@ -294,6 +375,8 @@ class _Body extends StatelessWidget {
   final Set<String> selectedServiceIds;
   final TextEditingController addressController;
   final TextEditingController notesController;
+  final LocationResult? selectedLocation;
+  final bool isLocating;
   final bool isSubmitting;
   final bool canConfirm;
   final List<String> monthNames;
@@ -306,6 +389,7 @@ class _Body extends StatelessWidget {
   final void Function(DateTime) onDateSelected;
   final void Function(String) onTimeSelected;
   final void Function(String) onServiceToggle;
+  final VoidCallback onUseCurrentLocation;
   final VoidCallback onConfirm;
 
   @override
@@ -350,7 +434,12 @@ class _Body extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.lg),
-              _AddressSection(controller: addressController),
+              _AddressSection(
+                controller: addressController,
+                selectedLocation: selectedLocation,
+                isLocating: isLocating,
+                onUseCurrentLocation: onUseCurrentLocation,
+              ),
               const SizedBox(height: AppSpacing.lg),
               _NotesSection(controller: notesController),
             ],
@@ -440,14 +529,14 @@ class _ProfessionalCard extends StatelessWidget {
   }
 
   static String _readableSpecialty(String s) => switch (s) {
-        'enfermeria' => 'Enfermería',
-        'cuidado' || 'cuidado_adulto_mayor' => 'Cuidado adulto mayor',
-        'fisioterapia' => 'Fisioterapia',
-        'rehabilitacion' => 'Rehabilitación',
-        'pediatria' => 'Pediatría',
-        'acompanamiento' => 'Acompañamiento',
-        _ => s.replaceAll('_', ' '),
-      };
+    'enfermeria' => 'Enfermería',
+    'cuidado' || 'cuidado_adulto_mayor' => 'Cuidado adulto mayor',
+    'fisioterapia' => 'Fisioterapia',
+    'rehabilitacion' => 'Rehabilitación',
+    'pediatria' => 'Pediatría',
+    'acompanamiento' => 'Acompañamiento',
+    _ => s.replaceAll('_', ' '),
+  };
 }
 
 class _Fallback extends StatelessWidget {
@@ -577,8 +666,8 @@ class _CalendarSection extends StatelessWidget {
                       color: selected
                           ? Colors.white
                           : available
-                              ? AppColors.gray900
-                              : AppColors.gray300,
+                          ? AppColors.gray900
+                          : AppColors.gray300,
                     ),
                   ),
                 ),
@@ -662,13 +751,10 @@ class _TimeSlotsSection extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   decoration: BoxDecoration(
-                    color:
-                        selected ? AppColors.violet600 : Colors.transparent,
+                    color: selected ? AppColors.violet600 : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppRadii.sm),
                     border: Border.all(
-                      color: selected
-                          ? AppColors.violet600
-                          : AppColors.gray300,
+                      color: selected ? AppColors.violet600 : AppColors.gray300,
                     ),
                   ),
                   alignment: Alignment.center,
@@ -676,8 +762,7 @@ class _TimeSlotsSection extends StatelessWidget {
                     slot,
                     style: TextStyle(
                       fontSize: 12,
-                      color:
-                          selected ? Colors.white : AppColors.gray900,
+                      color: selected ? Colors.white : AppColors.gray900,
                     ),
                   ),
                 ),
@@ -798,18 +883,14 @@ class _ServiceItem extends StatelessWidget {
               height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color:
-                    selected ? AppColors.violet600 : Colors.transparent,
+                color: selected ? AppColors.violet600 : Colors.transparent,
                 border: Border.all(
-                  color: selected
-                      ? AppColors.violet600
-                      : AppColors.gray300,
+                  color: selected ? AppColors.violet600 : AppColors.gray300,
                   width: 2,
                 ),
               ),
               child: selected
-                  ? const Icon(Icons.check,
-                      size: 12, color: Colors.white)
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
                   : null,
             ),
           ],
@@ -828,8 +909,17 @@ class _ServiceItem extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AddressSection extends StatelessWidget {
-  const _AddressSection({required this.controller});
+  const _AddressSection({
+    required this.controller,
+    required this.selectedLocation,
+    required this.isLocating,
+    required this.onUseCurrentLocation,
+  });
+
   final TextEditingController controller;
+  final LocationResult? selectedLocation;
+  final bool isLocating;
+  final VoidCallback onUseCurrentLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -857,8 +947,11 @@ class _AddressSection extends StatelessWidget {
             children: [
               const Padding(
                 padding: EdgeInsets.only(top: 14),
-                child: Icon(Icons.location_on_outlined,
-                    size: 20, color: AppColors.gray400),
+                child: Icon(
+                  Icons.location_on_outlined,
+                  size: 20,
+                  color: AppColors.gray400,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -867,21 +960,23 @@ class _AddressSection extends StatelessWidget {
                   decoration: InputDecoration(
                     hintText: 'Ingresa tu dirección completa',
                     hintStyle: const TextStyle(
-                        color: AppColors.gray400, fontSize: 14),
+                      color: AppColors.gray400,
+                      fontSize: 14,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadii.sm),
-                      borderSide:
-                          const BorderSide(color: AppColors.gray300),
+                      borderSide: const BorderSide(color: AppColors.gray300),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadii.sm),
-                      borderSide:
-                          const BorderSide(color: AppColors.gray300),
+                      borderSide: const BorderSide(color: AppColors.gray300),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadii.sm),
                       borderSide: const BorderSide(
-                          color: AppColors.violet500, width: 2),
+                        color: AppColors.violet500,
+                        width: 2,
+                      ),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -892,6 +987,40 @@ class _AddressSection extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: isLocating ? null : onUseCurrentLocation,
+            icon: isLocating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location_outlined, size: 16),
+            label: Text(
+              selectedLocation == null
+                  ? 'Usar ubicacion actual'
+                  : 'Ubicacion GPS agregada',
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: selectedLocation == null
+                  ? AppColors.violet600
+                  : AppColors.successText,
+              side: BorderSide(
+                color: selectedLocation == null
+                    ? AppColors.violet200
+                    : AppColors.success,
+              ),
+              minimumSize: const Size.fromHeight(42),
+            ),
+          ),
+          if (selectedLocation != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Precision aprox: ${selectedLocation!.accuracyMeters?.toStringAsFixed(0) ?? 'N/D'} m',
+              style: const TextStyle(fontSize: 11, color: AppColors.gray500),
+            ),
+          ],
         ],
       ),
     );
@@ -933,8 +1062,10 @@ class _NotesSection extends StatelessWidget {
             decoration: InputDecoration(
               hintText:
                   'Describe brevemente tu necesidad o alguna instrucción especial...',
-              hintStyle:
-                  const TextStyle(color: AppColors.gray400, fontSize: 14),
+              hintStyle: const TextStyle(
+                color: AppColors.gray400,
+                fontSize: 14,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadii.sm),
                 borderSide: const BorderSide(color: AppColors.gray300),
@@ -946,7 +1077,9 @@ class _NotesSection extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadii.sm),
                 borderSide: const BorderSide(
-                    color: AppColors.violet500, width: 2),
+                  color: AppColors.violet500,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.all(AppSpacing.md),
             ),
@@ -1001,8 +1134,7 @@ class _BottomBar extends StatelessWidget {
               children: [
                 const Text(
                   'Total a pagar',
-                  style: TextStyle(
-                      fontSize: 13, color: AppColors.gray600),
+                  style: TextStyle(fontSize: 13, color: AppColors.gray600),
                 ),
                 Text(
                   '\$${total.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
@@ -1022,11 +1154,11 @@ class _BottomBar extends StatelessWidget {
               onPressed: isSubmitting ? null : onConfirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.violet600,
-                disabledBackgroundColor:
-                    AppColors.violet600.withValues(alpha: 0.6),
+                disabledBackgroundColor: AppColors.violet600.withValues(
+                  alpha: 0.6,
+                ),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadii.md),
                 ),
@@ -1037,7 +1169,9 @@ class _BottomBar extends StatelessWidget {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text(
                       'Confirmar reserva',

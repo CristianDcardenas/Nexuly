@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/services/profile_photo_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../data/models/app_user.dart';
 import '../../../data/repositories/users_repository.dart';
 import '../../../features/auth/providers/auth_providers.dart';
 import '../../../shared/widgets/nexuly_badge.dart';
+import '../../../shared/widgets/photo_picker_sheet.dart';
 import '../../../shared/widgets/user_avatar.dart';
+
+final _profilePhotoRefreshProvider = StateProvider.autoDispose<int>((ref) => 0);
 
 /// Pantalla de perfil del paciente (tab "Perfil" del shell).
 ///
@@ -52,6 +56,10 @@ class _ProfileBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final verification = _VerificationLevel.fromUser(user);
+    ref.watch(_profilePhotoRefreshProvider);
+    final localPhoto = ref
+        .read(profilePhotoServiceProvider)
+        .getDataUrl(user.uid);
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -70,14 +78,17 @@ class _ProfileBody extends ConsumerWidget {
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  UserAvatar(
-                    name: user.fullName,
-                    photoUrl: user.photoUrl,
-                    size: 96,
+                  GestureDetector(
+                    onTap: () => _changePhoto(context, ref),
+                    child: UserAvatar(
+                      name: user.fullName,
+                      photoUrl: localPhoto ?? user.photoUrl,
+                      size: 96,
+                    ),
                   ),
                   Positioned(
                     bottom: -2,
-                    right: -2,
+                    left: -2,
                     child: Container(
                       width: 32,
                       height: 32,
@@ -90,6 +101,27 @@ class _ProfileBody extends ConsumerWidget {
                         Icons.shield,
                         size: 16,
                         color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: GestureDetector(
+                      onTap: () => _changePhoto(context, ref),
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.violet600,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                        ),
+                        child: const Icon(
+                          Icons.photo_camera_outlined,
+                          size: 15,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -276,6 +308,16 @@ class _ProfileBody extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Próximamente')));
+  }
+
+  Future<void> _changePhoto(BuildContext context, WidgetRef ref) async {
+    final changed = await showPhotoPickerSheet(
+      context: context,
+      ref: ref,
+      uid: user.uid,
+    );
+    if (!changed) return;
+    ref.read(_profilePhotoRefreshProvider.notifier).state++;
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {

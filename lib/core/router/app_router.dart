@@ -94,8 +94,12 @@ GoRouter appRouter(Ref ref) {
           loc.startsWith('/professional/') ||
           loc.startsWith('/booking/') ||
           loc.startsWith('/active/') ||
-          loc.startsWith('/qr/');
-      final isProRoute = loc == '/pro' || loc.startsWith('/pro/');
+          loc.startsWith('/qr/service/');
+      final isProRoute =
+          loc == '/pro' ||
+          loc.startsWith('/pro/') ||
+          loc == '/qr/scan' ||
+          loc == '/qr/result';
       final isAdminRoute = loc == '/admin' || loc.startsWith('/admin/');
 
       if (isPatientRoute || isProRoute || isAdminRoute) {

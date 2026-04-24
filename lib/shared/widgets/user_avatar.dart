@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -24,6 +26,17 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (photoUrl != null && photoUrl!.isNotEmpty) {
+      if (photoUrl!.startsWith('data:image/')) {
+        final comma = photoUrl!.indexOf(',');
+        if (comma != -1) {
+          final bytes = base64Decode(photoUrl!.substring(comma + 1));
+          return CircleAvatar(
+            radius: size / 2,
+            backgroundImage: MemoryImage(bytes),
+            backgroundColor: AppColors.gray200,
+          );
+        }
+      }
       return CircleAvatar(
         radius: size / 2,
         backgroundImage: NetworkImage(photoUrl!),
@@ -35,7 +48,8 @@ class UserAvatar extends StatelessWidget {
       backgroundColor: _colorFromName(name),
       child: Text(
         _initials(name),
-        style: textStyle ??
+        style:
+            textStyle ??
             TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -48,11 +62,15 @@ class UserAvatar extends StatelessWidget {
   static String _initials(String name) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return '?';
-    final parts = trimmed.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = trimmed
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.length == 1) {
       return parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
     }
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 
   static Color _colorFromName(String name) {
